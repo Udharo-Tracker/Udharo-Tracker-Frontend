@@ -1,15 +1,25 @@
-import { Button, Typography } from 'antd'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/shared/AppLayout";
+import { Dashboard } from "./pages/Dashboard/index";
+import { CustomersList } from "./pages/customer/customers";
+import { CustomerDetail } from "./pages/customer/customer";
+import { AddUdharo } from "./pages/udharo/index";
+import { RecordPayment } from "./pages/payment/index";
+import { Reports } from "./pages/report/index";
 
-const { Title, Text } = Typography
-
-function App() {
+export default function App() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-      <Title level={2}>Udharo Tracker</Title>
-      <Text type="secondary">React · Vite · TypeScript · TanStack Query · Tailwind · Ant Design</Text>
-      <Button type="primary">Get Started</Button>
-    </div>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/customers" element={<CustomersList />} />
+          <Route path="/customers/:id" element={<CustomerDetail />} />
+          <Route path="/udharo/new" element={<AddUdharo />} />
+          <Route path="/payments/new" element={<RecordPayment />} />
+          <Route path="/reports" element={<Reports />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
-
-export default App
