@@ -1,12 +1,13 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { customers, npr } from "../../lib/mock-data";
 import { CustomerCombobox } from "../../components/shared/CustomerCombobox";
 import { Plus, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Card, } from "antd";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useCreateUdharoEntry } from "@/api/udharo.api";
+import { npr } from "@/lib/currency";
 
 export function AddUdharo() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export function AddUdharo() {
   const [note, setNote] = useState("");
   const [items, setItems] = useState([{ name: "", amount: "" }]);
   const firstAmountRef = useRef<HTMLInputElement>(null);
+  const createUdharoEntry = useCreateUdharoEntry();
 
   // When the first item row appears (e.g. customer just selected), focus its amount field
   useEffect(() => {
@@ -33,9 +35,24 @@ export function AddUdharo() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
-    const cust = customers.find((c) => c.id === customerId)!;
-    toast.success("Udharo added", { description: `${npr(total)} to ${cust.name}` });
-    navigate(`/customers/${customerId}`);
+    createUdharoEntry.mutate(
+      {
+        customer: customerId,
+        note: note || undefined,
+        items: items
+          .filter((i) => i.name && parseFloat(i.amount) > 0)
+          .map((i) => ({ item_name: i.name, amount: i.amount })),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Udharo added", { description: `${npr(total)} recorded` });
+          navigate(`/customers/${customerId}`);
+        },
+        onError: (error) => {
+          toast.error("Couldn't add udharo", { description: error.message });
+        },
+      }
+    );
   };
 
   return (
@@ -118,8 +135,9 @@ export function AddUdharo() {
             <div className="text-2xl font-bold">{npr(total)}</div>
           </div>
           <Button
-            // type="submit"
+            htmlType="submit"
             disabled={!valid}
+            loading={createUdharoEntry.isPending}
             size="large"
             className="rounded-2xl bg-primary-foreground text-primary hover:bg-primary-foreground/90 h-12 px-6 disabled:opacity-50"
           >

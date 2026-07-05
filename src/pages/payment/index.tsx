@@ -1,23 +1,27 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { App, Card, Button } from "antd";
-import { customers, npr } from "../../lib/mock-data";
 import { CustomerCombobox } from "../../components/shared/CustomerCombobox";
 import { Check } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useCreatePayment } from "@/api/payments.api";
+import { useLedgerSummary } from "@/api/ledger.api";
+import { npr } from "@/lib/currency";
 
 export function RecordPayment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preset = searchParams.get("customerId") ?? undefined;
   const { message } = App.useApp();
+  const createPayment = useCreatePayment();
+  const ledgerSummary = useLedgerSummary();
 
   const [customerId, setCustomerId] = useState(preset ?? "");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
-  const cust = customers.find((c) => c.id === customerId);
+  const cust = ledgerSummary.data?.customers_summary.find((c) => c.id === customerId);
 
   useEffect(() => {
     if (customerId) amountRef.current?.focus();
@@ -29,8 +33,18 @@ export function RecordPayment() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
-    message.success(`${npr(value)} received from ${cust!.name}`);
-    navigate(`/customers/${customerId}`);
+    createPayment.mutate(
+      { customer: customerId, amount_paid: amount, note: note || undefined },
+      {
+        onSuccess: () => {
+          message.success(`${npr(value)} received${cust ? ` from ${cust.name}` : ""}`);
+          navigate(`/customers/${customerId}`);
+        },
+        onError: (error) => {
+          message.error(error.message);
+        },
+      }
+    );
   };
 
   return (
@@ -50,7 +64,7 @@ export function RecordPayment() {
           {cust && (
             <div className="rounded-2xl bg-primary-soft p-4 flex items-center justify-between">
               <span className="text-sm text-primary font-medium">Current outstanding</span>
-              <span className="text-lg font-bold text-primary">{npr(cust.outstanding)}</span>
+              <span className="text-lg font-bold text-primary">{npr(cust.outstanding_balance)}</span>
             </div>
           )}
 
@@ -68,7 +82,7 @@ export function RecordPayment() {
             />
             {cust && value > 0 && (
               <div className="mt-2 text-xs text-muted-foreground">
-                New balance: <span className="font-semibold text-foreground">{npr(Math.max(0, cust.outstanding - value))}</span>
+                New balance: <span className="font-semibold text-foreground">{npr(Math.max(0, cust.outstanding_balance - value))}</span>
               </div>
             )}
           </div>
@@ -85,8 +99,9 @@ export function RecordPayment() {
         </Card>
 
         <Button
-        //   type="submit"
+          htmlType="submit"
           disabled={!valid}
+          loading={createPayment.isPending}
           size="large"
           className="w-full rounded-2xl h-14 text-base disabled:opacity-50"
         >
