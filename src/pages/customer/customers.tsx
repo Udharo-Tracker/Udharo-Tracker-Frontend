@@ -1,21 +1,25 @@
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { customers, npr, type Risk } from "@/lib/mock-data";
-import { RiskBadge } from "@/components/shared/RiskBadge";
-import { Card } from "antd";
-import { Input } from "antd";
+import { Card, Input, Alert, Skeleton } from "antd";
 import { Search, ChevronRight } from "lucide-react";
+import { useLedgerSummary } from "@/api/ledger.api";
+import { RiskBadge } from "@/components/shared/RiskBadge";
+import { npr } from "@/lib/currency";
+import type { CreditRiskLevel } from "@/types/credit-score";
 
-const filters: { key: "all" | Risk; label: string }[] = [
+const filters: { key: "all" | CreditRiskLevel; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "low", label: "Low risk" },
-  { key: "medium", label: "Medium" },
-  { key: "high", label: "High risk" },
+  { key: "green", label: "Low risk" },
+  { key: "yellow", label: "Medium" },
+  { key: "red", label: "High risk" },
 ];
 
 export function CustomersList() {
+  const { data, isLoading, isError, error } = useLedgerSummary();
   const [q, setQ] = useState("");
-  const [risk, setRisk] = useState<"all" | Risk>("all");
+  const [risk, setRisk] = useState<"all" | CreditRiskLevel>("all");
+
+  const customers = useMemo(() => data?.customers_summary ?? [], [data]);
 
   const filtered = useMemo(
     () =>
@@ -24,15 +28,21 @@ export function CustomersList() {
           (risk === "all" || c.risk === risk) &&
           (c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q))
       ),
-    [q, risk]
+    [customers, q, risk]
   );
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-bold">Customers</h1>
-        <p className="text-sm text-muted-foreground mt-1">{customers.length} total · {customers.filter(c => c.risk === "high").length} high risk</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {customers.length} total · {customers.filter((c) => c.risk === "red").length} high risk
+        </p>
       </header>
+
+      {isError && (
+        <Alert type="error" showIcon title="Couldn't load customers" description={(error as Error).message} />
+      )}
 
       <div className="flex flex-col md:flex-row gap-3 md:items-center">
         <div className="relative flex-1">
@@ -60,30 +70,37 @@ export function CustomersList() {
       </div>
 
       <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
-        <ul className="divide-y">
-          {filtered.map((c) => (
-            <li key={c.id}>
-              <Link to={`/customers/${c.id}`} className="flex items-center gap-4 p-4 hover:bg-muted/50 transition">
-                <div className="size-11 rounded-2xl bg-primary-soft text-primary font-semibold grid place-items-center">
-                  {c.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{c.name}</div>
-                  <div className="text-xs text-muted-foreground">{c.phone}</div>
-                </div>
-                <RiskBadge risk={c.risk} />
-                <div className="text-right">
-                  <div className="font-semibold">{npr(c.outstanding)}</div>
-                  <div className="text-xs text-muted-foreground">outstanding</div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-            </li>
-          ))}
-          {filtered.length === 0 && (
-            <li className="p-12 text-center text-muted-foreground text-sm">No customers match your filters.</li>
-          )}
-        </ul>
+        {isLoading && (
+          <div className="p-6">
+            <Skeleton active paragraph={{ rows: 6 }} />
+          </div>
+        )}
+        {!isLoading && (
+          <ul className="divide-y">
+            {filtered.map((c) => (
+              <li key={c.id}>
+                <Link to={`/customers/${c.id}`} className="flex items-center gap-4 p-4 hover:bg-muted/50 transition">
+                  <div className="size-11 rounded-2xl bg-primary-soft text-primary font-semibold grid place-items-center">
+                    {c.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">{c.phone}</div>
+                  </div>
+                  <RiskBadge risk={c.risk} />
+                  <div className="text-right">
+                    <div className="font-semibold">{npr(c.outstanding_balance)}</div>
+                    <div className="text-xs text-muted-foreground">outstanding</div>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                </Link>
+              </li>
+            ))}
+            {filtered.length === 0 && (
+              <li className="p-12 text-center text-muted-foreground text-sm">No customers match your filters.</li>
+            )}
+          </ul>
+        )}
       </Card>
     </div>
   );
