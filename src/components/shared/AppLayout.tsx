@@ -11,6 +11,7 @@ const nav = [
   { to: "/udharo/new", label: "Add Udharo", icon: PlusCircle },
   { to: "/payments/new", label: "Record Payment", icon: Wallet },
   { to: "/reports", label: "Monthly Report", icon: BarChart3 },
+  { to: "/shop", label: "Shops", icon: Store },
 ];
 
 export default function AppLayout({ children }: { children?: ReactNode }) {
@@ -39,7 +40,7 @@ export default function AppLayout({ children }: { children?: ReactNode }) {
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                     active
                       ? "bg-sidebar-foreground text-sidebar font-medium shadow-sm"
-                      : "hover:bg-sidebar-accent"
+                      : "hover:bg-sidebar-accent hover:text-primary"
                   }`}
                 >
                   <Icon className="size-4" />

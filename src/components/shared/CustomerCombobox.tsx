@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Check } from "lucide-react";
-import { customers, type Customer } from "../../lib/mock-data";
+import { Search, Check, Loader2 } from "lucide-react";
+import { useCustomers } from "@/api/customers.api";
 
 interface Props {
   value: string;
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export function CustomerCombobox({ value, onChange, autoFocus }: Props) {
+  const { data: customers = [], isLoading } = useCustomers();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -18,7 +19,7 @@ export function CustomerCombobox({ value, onChange, autoFocus }: Props) {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
-  const filtered: Customer[] = customers.filter((c) => {
+  const filtered = customers.filter((c) => {
     const s = q.toLowerCase();
     return !s || c.name.toLowerCase().includes(s) || c.phone.includes(q);
   });
@@ -40,7 +41,12 @@ export function CustomerCombobox({ value, onChange, autoFocus }: Props) {
       </div>
       {open && (
         <ul className="absolute z-30 mt-2 w-full max-h-72 overflow-auto rounded-2xl bg-popover border shadow-xl p-1">
-          {filtered.length === 0 && (
+          {isLoading && (
+            <li className="px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" /> Loading customers…
+            </li>
+          )}
+          {!isLoading && filtered.length === 0 && (
             <li className="px-4 py-3 text-sm text-muted-foreground">No customers found.</li>
           )}
           {filtered.map((c) => (
