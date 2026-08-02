@@ -6,17 +6,20 @@ import { Toaster } from 'sonner'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeProvider'
 
 const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-      <Toaster richColors position="top-center" />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+        <Toaster richColors position="top-center" />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

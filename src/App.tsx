@@ -1,13 +1,15 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AppLayout from "./components/shared/AppLayout";
+import AppLayout from "./layout/AppLayout";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { Login } from "./pages/auth/Login";
 import { Signup } from "./pages/auth/Signup";
 import { Dashboard } from "./pages/Dashboard/index";
-import { CustomersList } from "./pages/customer/customers";
-import { CustomerDetail } from "./pages/customer/customer";
-import { AddUdharo } from "./pages/udharo/index";
-import { RecordPayment } from "./pages/payment/index";
+import { CustomersList } from "./pages/customer/list";
+import { CustomerDetail } from "./pages/customer/info";
+import { UdharoList } from "./pages/udharo/list";
+import { UdharoDetail } from "./pages/udharo/info";
+import { PaymentsList } from "./pages/payment/list";
+import { PaymentDetail } from "./pages/payment/info";
 import { Reports } from "./pages/report/index";
 import { Shops } from "./pages/shop/index";
 import { Reminders } from "./pages/reminder/index";
@@ -24,8 +26,10 @@ export default function App() {
             <Route path="/customers" element={<CustomersList />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route path="/customers/:id/reminders" element={<Reminders />} />
-            <Route path="/udharo/new" element={<AddUdharo />} />
-            <Route path="/payments/new" element={<RecordPayment />} />
+            <Route path="/udharo" element={<UdharoList />} />
+            <Route path="/udharo/:id" element={<UdharoDetail />} />
+            <Route path="/payments" element={<PaymentsList />} />
+            <Route path="/payments/:id" element={<PaymentDetail />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/shop" element={<Shops />} />
           </Route>
