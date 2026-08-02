@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, Input, Button, Alert, Skeleton, App } from "antd";
 import { Store, Phone, MapPin, Plus } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/shared/Label";
 import { useShops, useCreateShop } from "@/api/shops.api";
 
 export function Shops() {

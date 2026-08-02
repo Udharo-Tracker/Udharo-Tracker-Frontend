@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button, Card, Input } from "antd";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/shared/Label";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogin } from "@/api/auth.api";
 
