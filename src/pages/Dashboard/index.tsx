@@ -1,23 +1,26 @@
 import { Link } from "react-router-dom";
-import { Card, Skeleton, Alert } from "antd";
+import { Button, Skeleton, Alert } from "antd";
 import { ArrowUpRight, Coins, Wallet, Clock, CalendarDays } from "lucide-react";
 import { useDashboard } from "@/api/ledger.api";
 import { useUdharoEntries } from "@/api/udharo.api";
-import { useCustomers } from "@/api/customers.api";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Panel } from "@/components/shared/Panel";
 import { RiskBadge } from "@/components/shared/RiskBadge";
+import { StatCard, StatCardSkeleton, type StatCardTint } from "@/components/shared/StatCard";
+import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 
 export function Dashboard() {
   const dashboard = useDashboard();
   const udharoEntries = useUdharoEntries();
-  const customers = useCustomers();
+  const { openCreateUdharo } = useEntityModals();
 
-  const stats = dashboard.data
+  const stats: { label: string; value: number; icon: typeof Coins; tint: StatCardTint }[] = dashboard.data
     ? [
-        { label: "Total credit given", value: dashboard.data.total_credit_given, icon: Coins, tint: "bg-primary text-primary-foreground" },
-        { label: "Total recovered", value: dashboard.data.total_recovered, icon: Wallet, tint: "bg-success text-success-foreground" },
-        { label: "Total pending", value: dashboard.data.total_pending, icon: Clock, tint: "bg-warning text-warning-foreground" },
-        { label: "Today's udharo", value: dashboard.data.todays_udharo, icon: CalendarDays, tint: "bg-accent text-accent-foreground" },
+        { label: "Total credit given", value: dashboard.data.total_credit_given, icon: Coins, tint: "primary" },
+        { label: "Total recovered", value: dashboard.data.total_recovered, icon: Wallet, tint: "success" },
+        { label: "Total pending", value: dashboard.data.total_pending, icon: Clock, tint: "warning" },
+        { label: "Today's udharo", value: dashboard.data.todays_udharo, icon: CalendarDays, tint: "accent" },
       ]
     : [];
 
@@ -25,49 +28,37 @@ export function Dashboard() {
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 4);
 
-  const customerName = (customerId: string) =>
-    customers.data?.find((c) => c.id === customerId)?.name ?? "Unknown customer";
-
   return (
     <div className="space-y-8">
-      <header className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Namaste, Shopkeeper 👋</p>
-          <h1 className="text-3xl font-bold mt-1">Dashboard</h1>
-        </div>
-        <Link to="/udharo/new" className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition">
-          New udharo <ArrowUpRight className="size-4" />
-        </Link>
-      </header>
+      <PageHeader
+        title="Dashboard"
+        eyebrow="Namaste, Shopkeeper 👋"
+        actions={
+          <Button
+            type="primary"
+            icon={<ArrowUpRight className="size-4" />}
+            iconPlacement="end"
+            onClick={() => openCreateUdharo()}
+          >
+            New udharo
+          </Button>
+        }
+      />
 
       {dashboard.isError && (
         <Alert type="error" showIcon title="Couldn't load dashboard summary" description={(dashboard.error as Error).message} />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {dashboard.isLoading &&
-          Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="p-5 border-none shadow-sm rounded-3xl">
-              <Skeleton active paragraph={{ rows: 1 }} />
-            </Card>
-          ))}
+          Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
         {stats.map((s) => (
-          <Card key={s.label} className="p-5 border-none shadow-sm rounded-3xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</p>
-                <p className="mt-3 text-2xl font-bold">{npr(s.value)}</p>
-              </div>
-              <div className={`size-11 rounded-2xl grid place-items-center ${s.tint}`}>
-                <s.icon className="size-5" />
-              </div>
-            </div>
-          </Card>
+          <StatCard key={s.label} label={s.label} value={npr(s.value)} icon={s.icon} tint={s.tint} />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 p-6 rounded-3xl border-none shadow-sm">
+        <Panel className="lg:col-span-2">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold text-lg">Top 5 debtors</h2>
             <Link to="/customers" className="text-xs text-primary font-medium hover:underline">View all</Link>
@@ -95,9 +86,9 @@ export function Dashboard() {
               <li className="p-6 text-center text-sm text-muted-foreground">No outstanding debtors.</li>
             )}
           </ol>
-        </Card>
+        </Panel>
 
-        <Card className="p-6 rounded-3xl border-none shadow-sm">
+        <Panel>
           <h2 className="font-semibold text-lg mb-5">Recent udharo</h2>
           {udharoEntries.isLoading && <Skeleton active paragraph={{ rows: 4 }} />}
           {udharoEntries.isError && (
@@ -107,7 +98,7 @@ export function Dashboard() {
             {recent.map((e) => (
               <li key={e.id} className="flex items-center justify-between gap-3 pb-3 border-b last:border-b-0 last:pb-0">
                 <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">{customerName(e.customer)}</div>
+                  <div className="font-medium text-sm truncate">{e.customer.name}</div>
                   <div className="text-xs text-muted-foreground truncate">
                     {e.items.map((i) => i.item_name).join(", ")}
                   </div>
@@ -122,7 +113,7 @@ export function Dashboard() {
               <li className="p-6 text-center text-sm text-muted-foreground">No udharo entries yet.</li>
             )}
           </ul>
-        </Card>
+        </Panel>
       </div>
     </div>
   );
