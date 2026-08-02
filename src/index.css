@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* Light-mode --primary/--success/--warning/--danger below are mirrored in
+   src/lib/theme-tokens.ts for antd's ConfigProvider — keep both in sync. */
 :root {
   /* Base surfaces */
   --background: #ffffff;
@@ -11,7 +13,7 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  --muted: #f1f5f9;
+  --muted: #f3f7fa;
   --muted-foreground: #64748b;
 
   --border: #e2e8f0;
@@ -27,18 +29,22 @@
 
   --accent: #7c5cfc; /* fourth categorical colour for stat rows / charts alongside primary, success, warning */
   --accent-foreground: #ffffff;
+  --accent-soft: #f1ecff;
 
   --ring: var(--primary);
 
   /* Semantic status colours */
   --success: #16a34a;
   --success-foreground: #ffffff;
+  --success-soft: #e9f9ef;
 
   --warning: #fbbf24;
   --warning-foreground: #78350f;
+  --warning-soft: #fef3e2;
 
   --danger: #dc2626;
   --danger-foreground: #ffffff;
+  --danger-soft: #fdecec;
 
   /* Sidebar — stays a fixed dark navy in both light and dark mode */
   --sidebar: #0b1d3a;
@@ -72,17 +78,21 @@
 
     --accent: #9f85ff;
     --accent-foreground: #14102b;
+    --accent-soft: #251c47;
 
     --ring: var(--primary);
 
     --success: #22c55e;
     --success-foreground: #052e13;
+    --success-soft: #123322;
 
     --warning: #fbbf24;
     --warning-foreground: #78350f;
+    --warning-soft: #3a2f0e;
 
     --danger: #f87171;
     --danger-foreground: #1f0a0a;
+    --danger-soft: #3a1414;
   }
 }
 
@@ -112,15 +122,19 @@
 
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
 
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
 
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -131,4 +145,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.ant-tag {
+  border-radius: 9999px;
 }

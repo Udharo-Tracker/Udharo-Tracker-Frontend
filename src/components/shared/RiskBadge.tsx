@@ -1,9 +1,9 @@
 import type { CreditRiskLevel } from "@/types/credit-score";
 
 const styles: Record<CreditRiskLevel, string> = {
-  green: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400",
-  yellow: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400",
-  red: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
+  green: "border-success/20 bg-success-soft text-success",
+  yellow: "border-warning/30 bg-warning-soft text-warning-foreground",
+  red: "border-danger/20 bg-danger-soft text-danger",
 };
 
 const labels: Record<CreditRiskLevel, string> = {
