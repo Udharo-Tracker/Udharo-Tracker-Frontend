@@ -3,6 +3,7 @@ import { Card, Select, Alert, Skeleton } from "antd";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 import { useMonthlyReport } from "@/api/ledger.api";
 import { npr } from "@/lib/currency";
+import { formatDateOnly } from "@/utils/date";
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -141,7 +142,7 @@ export function Reports() {
                 <tbody>
                   {data.daily_breakdown.map((d) => (
                     <tr key={d.date} className="border-t">
-                      <td className="px-6 py-3 text-muted-foreground">{d.date}</td>
+                      <td className="px-6 py-3 text-muted-foreground">{formatDateOnly(d.date)}</td>
                       <td className="px-6 py-3 text-right">{npr(d.total_udharo)}</td>
                       <td className="px-6 py-3 text-right text-success">{npr(d.total_payments)}</td>
                       <td className={`px-6 py-3 text-right font-semibold ${d.net > 0 ? "text-warning-foreground" : "text-success"}`}>
