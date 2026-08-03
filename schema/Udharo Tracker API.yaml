@@ -259,6 +259,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReminderLog'
           description: ''
+  /api/v1/customers/{customer_id}/reminders/sms/:
+    post:
+      operationId: api_v1_customers_reminders_sms_create
+      description: Sends an SMS reminder to the customer for their current outstanding
+        balance.
+      parameters:
+      - in: path
+        name: customer_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Reminder Log
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderLog'
+          description: ''
   /api/v1/customers/{customer_id}/statement/:
     get:
       operationId: api_v1_customers_statement_retrieve
@@ -287,6 +310,13 @@ paths:
                       id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                       name: Ram Sharma
                       phone: '+9779812345678'
+                      email: ram.sharma@example.com
+                      address: Baneshwor, Kathmandu
+                      credit_limit: 10000.0
+                      credit_term_days: 30
+                      loyalty_discount: 5.0
+                      opening_balance: 0.0
+                      created_at: '2026-07-01T09:15:00+05:45'
                     summary:
                       total_udharo: 5000.0
                       total_paid: 2000.0
@@ -1202,6 +1232,16 @@ components:
     BlankEnum:
       enum:
       - ''
+    ChannelEnum:
+      enum:
+      - note
+      - sms
+      - auto
+      type: string
+      description: |-
+        * `note` - Note
+        * `sms` - SMS
+        * `auto` - Automatic
     CreditScore:
       type: object
       properties:
@@ -1254,6 +1294,28 @@ components:
         phone:
           type: string
           maxLength: 15
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        credit_limit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        credit_term_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        loyalty_discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        opening_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
         created_at:
           type: string
           format: date-time
@@ -1288,6 +1350,28 @@ components:
         phone:
           type: string
           maxLength: 15
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        credit_limit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        credit_term_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        loyalty_discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        opening_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
         created_at:
           type: string
           format: date-time
@@ -1481,8 +1565,17 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        channel:
+          allOf:
+          - $ref: '#/components/schemas/ChannelEnum'
+          readOnly: true
+        delivery_status:
+          type: string
+          readOnly: true
       required:
+      - channel
       - customer
+      - delivery_status
       - id
       - outstanding_balance
       - sent_at
