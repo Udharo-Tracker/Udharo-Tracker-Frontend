@@ -1,4 +1,5 @@
 import type { UdharoEntry } from "./udharo";
+import type { Customer } from "./customer";
 
 export interface CustomerStatementSummary {
   total_udharo: number;
@@ -16,11 +17,7 @@ export interface StatementTransaction {
 }
 
 export interface CustomerStatement {
-  customer: {
-    id: string;
-    name: string;
-    phone: string | null;
-  };
+  customer: Customer;
   summary: CustomerStatementSummary;
   udharo_entries: UdharoEntry[];
   transactions: StatementTransaction[];
