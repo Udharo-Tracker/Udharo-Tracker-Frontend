@@ -12,7 +12,6 @@ import { PaymentsList } from "./pages/payment/list";
 import { PaymentDetail } from "./pages/payment/info";
 import { Reports } from "./pages/report/index";
 import { Shops } from "./pages/shop/index";
-import { Reminders } from "./pages/reminder/index";
 
 export default function App() {
   return (
@@ -25,7 +24,6 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/customers" element={<CustomersList />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
-            <Route path="/customers/:id/reminders" element={<Reminders />} />
             <Route path="/udharo" element={<UdharoList />} />
             <Route path="/udharo/:id" element={<UdharoDetail />} />
             <Route path="/payments" element={<PaymentsList />} />

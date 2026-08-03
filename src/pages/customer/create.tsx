@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { App, Modal, Input, Button } from "antd";
+import { App, Modal, Input, InputNumber, Button, Divider } from "antd";
 import { UserPlus } from "lucide-react";
 import { Label } from "@/components/shared/Label";
+import { Textarea } from "@/components/shared/Textarea";
 import { useCreateCustomer } from "@/api/customers.api";
 
 interface Props {
@@ -25,6 +26,12 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [creditLimit, setCreditLimit] = useState(0);
+  const [creditTermDays, setCreditTermDays] = useState(0);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0);
+  const [openingBalance, setOpeningBalance] = useState(0);
 
   const valid = name.trim() && phone.trim();
 
@@ -32,7 +39,16 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     if (!valid) return;
     createCustomer.mutate(
-      { name: name.trim(), phone: phone.trim() },
+      {
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        address: address.trim(),
+        credit_limit: String(creditLimit),
+        credit_term_days: creditTermDays,
+        loyalty_discount: String(loyaltyDiscount),
+        opening_balance: String(openingBalance),
+      },
       {
         onSuccess: (customer) => {
           message.success("Customer added");
@@ -65,6 +81,69 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
           className="h-11 rounded-xl"
         />
       </div>
+      <div>
+        <Label className="mb-2 block">Email (optional)</Label>
+        <Input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="customer@example.com"
+          className="h-11 rounded-xl"
+        />
+      </div>
+      <div>
+        <Label className="mb-2 block">Address (optional)</Label>
+        <Textarea
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="e.g. Baneshwor, Kathmandu"
+        />
+      </div>
+
+      <Divider className="my-2!">Credit settings</Divider>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label className="mb-2 block">Credit limit</Label>
+          <InputNumber
+            value={creditLimit}
+            onChange={(v) => setCreditLimit(v ?? 0)}
+            min={0}
+            className="h-11 w-full rounded-xl [&_input]:h-11!"
+            addonAfter="Rs"
+          />
+        </div>
+        <div>
+          <Label className="mb-2 block">Credit term</Label>
+          <InputNumber
+            value={creditTermDays}
+            onChange={(v) => setCreditTermDays(v ?? 0)}
+            min={0}
+            className="h-11 w-full rounded-xl [&_input]:h-11!"
+            addonAfter="Days"
+          />
+        </div>
+        <div>
+          <Label className="mb-2 block">Loyalty discount</Label>
+          <InputNumber
+            value={loyaltyDiscount}
+            onChange={(v) => setLoyaltyDiscount(v ?? 0)}
+            min={0}
+            max={100}
+            className="h-11 w-full rounded-xl [&_input]:h-11!"
+            addonAfter="%"
+          />
+        </div>
+        <div>
+          <Label className="mb-2 block">Opening balance</Label>
+          <InputNumber
+            value={openingBalance}
+            onChange={(v) => setOpeningBalance(v ?? 0)}
+            className="h-11 w-full rounded-xl [&_input]:h-11!"
+            addonAfter="Rs"
+          />
+        </div>
+      </div>
+
       <Button
         htmlType="submit"
         type="primary"

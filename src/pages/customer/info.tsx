@@ -1,16 +1,20 @@
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Skeleton, Alert, App, Table, Button } from "antd";
+import { Skeleton, Alert, App, Table, Button, Tabs, Modal } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   ArrowLeft,
   Phone,
-  BellRing,
   Pencil,
   Trash2,
   Gauge,
   Receipt,
   Wallet,
   ChevronLeft,
+  Send,
+  CalendarDays,
+  Scale,
+  Copy,
 } from "lucide-react";
 import {
   CartesianGrid,
@@ -27,15 +31,21 @@ import {
   useCustomerCreditScoreHistory,
   useDeleteCustomer,
 } from "@/api/customers.api";
+import {
+  useCustomerReminders,
+  useCreateCustomerReminder,
+} from "@/api/reminders.api";
 import { ApiError } from "@/api/client";
-import { CustomerAvatar } from "@/components/shared/CustomerAvatar";
 import { Panel } from "@/components/shared/Panel";
 import { RiskBadge } from "@/components/shared/RiskBadge";
 import { StatCard, StatCardSkeleton } from "@/components/shared/StatCard";
+import { Textarea } from "@/components/shared/Textarea";
+import { Label } from "@/components/shared/Label";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateOnly } from "@/utils/date";
 import type { StatementTransaction } from "@/types/statement";
+import type { ReminderLog } from "@/types/reminder";
 
 export function CustomerDetail() {
   const { id = "" } = useParams<{ id: string }>();
@@ -46,6 +56,10 @@ export function CustomerDetail() {
   const creditScore = useCustomerCreditScore(id);
   const creditScoreHistory = useCustomerCreditScoreHistory(id);
   const deleteCustomer = useDeleteCustomer();
+  const reminders = useCustomerReminders(id);
+  const createReminder = useCreateCustomerReminder(id);
+  const [reminderNote, setReminderNote] = useState("");
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
 
   const confirmDelete = () => {
     modal.confirm({
@@ -156,27 +170,442 @@ export function CustomerDetail() {
     },
   ];
 
+  const reminderColumns: TableColumnsType<ReminderLog> = [
+    {
+      title: "Sent",
+      dataIndex: "sent_at",
+      key: "sent_at",
+      render: (sentAt: string) => (
+        <span className="text-muted-foreground">{formatDate(sentAt)}</span>
+      ),
+    },
+    {
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      render: (note: string) => note || "Reminder sent",
+    },
+    {
+      title: "Outstanding balance",
+      dataIndex: "outstanding_balance",
+      key: "outstanding_balance",
+      align: "right",
+      render: (balance: string) => (
+        <span className="font-semibold">{npr(balance)}</span>
+      ),
+    },
+  ];
+
+  const submitReminder = (e: FormEvent) => {
+    e.preventDefault();
+    createReminder.mutate(
+      { note: reminderNote || undefined },
+      {
+        onSuccess: () => {
+          message.success("Reminder logged");
+          setReminderNote("");
+          setReminderModalOpen(false);
+        },
+        onError: (error) => message.error(error.message),
+      },
+    );
+  };
+
+  const copyToClipboard = (value: string, label: string) => {
+    navigator.clipboard.writeText(value);
+    message.success(`${label} copied`);
+  };
+
+  const creditLimit = Number(customer.credit_limit) || 0;
+  const usedPct =
+    creditLimit > 0
+      ? Math.min(100, Math.round((summary.outstanding_balance / creditLimit) * 100))
+      : 0;
+  const usedFillClass =
+    usedPct >= 90 ? "bg-danger" : usedPct >= 60 ? "bg-warning" : "bg-success";
+
+  const overviewBanner = (
+    <div className="space-y-3">
+      <div className="rounded-lg bg-linear-to-br from-sidebar via-sidebar to-sidebar/80 text-sidebar-foreground p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs opacity-80">
+              <span className="size-2 rounded-full bg-success" />
+              To receive
+            </div>
+            <div className="text-2xl font-bold mt-2">
+              {npr(summary.outstanding_balance)}
+            </div>
+          </div>
+          <div className="text-right text-xs opacity-80">
+            {usedPct}% Used
+            <div className="text-sm font-medium opacity-100 mt-0.5">
+              {npr(creditLimit)} Credit Limit
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 h-1.5 rounded-full bg-white/15 overflow-hidden">
+          <div
+            className={`h-full rounded-full ${usedFillClass}`}
+            style={{ width: `${usedPct}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg bg-muted p-4">
+          <div className="text-xs text-muted-foreground">Credit Limit</div>
+          <div className="font-semibold mt-1">{npr(creditLimit)}</div>
+        </div>
+        <div className="rounded-lg bg-muted p-4">
+          <div className="text-xs text-muted-foreground">Credit Term</div>
+          <div className="font-semibold mt-1">
+            {customer.credit_term_days} Days
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const customerDetailsPanel = (
+    <Panel>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-sm">Customer Details</h2>
+        <Button
+          type="text"
+          size="small"
+          icon={<Copy className="size-3.5" />}
+          onClick={() =>
+            copyToClipboard(
+              [customer.name, customer.phone].filter(Boolean).join(" · "),
+              "Customer details",
+            )
+          }
+        />
+      </div>
+      <dl className="space-y-4 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Full Name</dt>
+          <dd className="font-medium text-right">{customer.name}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Phone Number</dt>
+          <dd className="font-medium text-right inline-flex items-center gap-1.5">
+            {customer.phone || "—"}
+            {customer.phone && (
+              <button
+                type="button"
+                onClick={() =>
+                  copyToClipboard(customer.phone as string, "Phone number")
+                }
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Copy className="size-3.5" />
+              </button>
+            )}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Email</dt>
+          <dd className="font-medium text-right inline-flex items-center gap-1.5 min-w-0">
+            <span className="truncate">{customer.email || "—"}</span>
+            {customer.email && (
+              <button
+                type="button"
+                onClick={() => copyToClipboard(customer.email, "Email")}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <Copy className="size-3.5" />
+              </button>
+            )}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Address</dt>
+          <dd className="font-medium text-right">{customer.address || "—"}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Loyalty Discount</dt>
+          <dd className="font-medium text-right">
+            {customer.loyalty_discount}%
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Joined On</dt>
+          <dd className="font-medium text-right">
+            {formatDateOnly(customer.created_at)}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Risk Level</dt>
+          <dd>
+            {creditScore.data ? (
+              <RiskBadge risk={creditScore.data.risk_level} />
+            ) : (
+              "—"
+            )}
+          </dd>
+        </div>
+      </dl>
+    </Panel>
+  );
+
+  const profileTab = (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {creditScore.isLoading ? (
+            <StatCardSkeleton />
+          ) : (
+            <StatCard
+              label="Credit score"
+              value={
+                creditScoreNotCalculated || !creditScore.data
+                  ? "—"
+                  : `${creditScore.data.score} / 100`
+              }
+              icon={Gauge}
+              tint="primary"
+            />
+          )}
+          <StatCard
+            label="Outstanding balance"
+            value={npr(summary.outstanding_balance)}
+            icon={Scale}
+            tint="danger"
+          />
+          <StatCard
+            label="Total udharo"
+            value={npr(summary.total_udharo)}
+            icon={Receipt}
+            tint="warning"
+          />
+          <StatCard
+            label="Total paid"
+            value={npr(summary.total_paid)}
+            icon={Wallet}
+            tint="success"
+          />
+        </div>
+
+        <Panel>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-sm">Credit score history</h2>
+            {creditScore.data && (
+              <span className="text-xs text-muted-foreground">
+                Latest: {creditScore.data.score} / 100
+              </span>
+            )}
+          </div>
+          {creditScoreHistory.isLoading && (
+            <Skeleton active paragraph={{ rows: 4 }} />
+          )}
+          {creditScoreHistory.isError && (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              Couldn't load credit score history.
+            </div>
+          )}
+          {creditScoreHistory.data && creditScoreHistory.data.length === 0 && (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              No credit score history yet.
+            </div>
+          )}
+          {creditScoreHistory.data && creditScoreHistory.data.length > 0 && (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={[...creditScoreHistory.data].sort(
+                    (a, b) =>
+                      new Date(a.calculated_at).getTime() -
+                      new Date(b.calculated_at).getTime(),
+                  )}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="calculated_at"
+                    stroke="var(--muted-foreground)"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: string) =>
+                      new Date(v).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    }
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    stroke="var(--muted-foreground)"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    width={32}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: "1px solid var(--border)",
+                      background: "var(--card)",
+                    }}
+                    labelFormatter={(v) => (v ? formatDate(v as string) : "")}
+                    formatter={(value) => [`${value} / 100`, "Score"]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="var(--primary)"
+                    strokeWidth={2}
+                    dot={{
+                      r: 4,
+                      fill: "var(--primary)",
+                      strokeWidth: 2,
+                      stroke: "var(--card)",
+                    }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--card)" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="space-y-6">
+        {creditScore.isLoading ? (
+          <div className="h-32 rounded-3xl bg-muted animate-pulse" />
+        ) : (
+          overviewBanner
+        )}
+        {customerDetailsPanel}
+      </div>
+    </div>
+  );
+
+  const transactionsTab = (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-base">Credit statement</h2>
+        <span className="text-xs text-muted-foreground">Running balance</span>
+      </div>
+      <Panel padding="none">
+        {" "}
+        <Table<StatementTransaction>
+          columns={columns}
+          dataSource={transactions}
+          rowKey="id"
+          size="middle"
+          pagination={{ pageSize: 10, hideOnSinglePage: true }}
+          locale={{ emptyText: "No transactions yet." }}
+        />
+      </Panel>
+    </div>
+  );
+
+  const remindersTab = (
+    <div className="space-y-5">
+      <div className="space-y-4">
+        <div className=" flex items-center justify-between">
+          <h2 className="font-semibold text-base">Reminder history</h2>
+          <Button
+            type="primary"
+            icon={<Send className="size-3.5" />}
+            onClick={() => setReminderModalOpen(true)}
+          >
+            Log reminder
+          </Button>
+        </div>
+        {reminders.isLoading && (
+          <div className="p-6">
+            <Skeleton active paragraph={{ rows: 4 }} />
+          </div>
+        )}
+        {reminders.isError && (
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            Couldn't load reminders.
+          </div>
+        )}
+        {reminders.data && (
+          <Panel padding="none">
+            <Table<ReminderLog>
+              columns={reminderColumns}
+              dataSource={reminders.data}
+              rowKey="id"
+              size="middle"
+              pagination={{ pageSize: 10, hideOnSinglePage: true }}
+              locale={{ emptyText: "No reminders logged yet." }}
+            />
+          </Panel>
+        )}
+      </div>
+
+      <Modal
+        title="Log a reminder"
+        open={reminderModalOpen}
+        onCancel={() => setReminderModalOpen(false)}
+        footer={null}
+        centered
+      >
+        <form onSubmit={submitReminder} className="space-y-4 pt-2">
+          <div>
+            <Label className="mb-2 block">Note (optional)</Label>
+            <Textarea
+              value={reminderNote}
+              onChange={(e) => setReminderNote(e.target.value)}
+              placeholder="e.g. called, promised to pay Friday…"
+              className="rounded-2xl bg-muted/60 border-input min-h-20"
+              autoFocus
+            />
+          </div>
+          <Button
+            htmlType="submit"
+            type="primary"
+            loading={createReminder.isPending}
+            block
+            className="rounded-xl"
+            icon={<Send className="size-4" />}
+          >
+            Log reminder
+          </Button>
+        </form>
+      </Modal>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3 ">
-        {" "}
-        <Link
-          to="/customers"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          {" "}
-          <Button icon={<ChevronLeft className="size-6 text-gray-100" />} />
-          
-        </Link>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-start gap-4">
+          <Link
+            to="/customers"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Button icon={<ChevronLeft className="size-6 text-gray-100" />} />
+          </Link>{" "}
+          <div>
+            <h1 className="text-xl font-semibold">{customer.name}</h1>
+            <div className="flex items-center flex-wrap gap-3 mt-1.5">
+              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CalendarDays className="size-3.5" /> Joined{" "}
+                {formatDateOnly(customer.created_at)}
+              </span>
+              {customer.phone && (
+                <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Phone className="size-3.5" /> {customer.phone}
+                </span>
+              )}
+              {creditScore.data && (
+                <RiskBadge risk={creditScore.data.risk_level} />
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-1">
-          <Button type="primary" icon={<BellRing className="size-4" />}>
-            <Link
-              to={`/customers/${id}/reminders`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-primary font-medium hover:bg-primary-soft"
-            >
-              Reminders
-            </Link>
-          </Button>
           <Button
             icon={<Pencil className="size-4" />}
             onClick={() => openEditCustomer(id)}
@@ -195,164 +624,18 @@ export function CustomerDetail() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <CustomerAvatar name={customer.name} size="lg" />
-          <div>
-            <h1 className="text-xl font-semibold">{customer.name}</h1>
-            <div className="flex items-center flex-wrap gap-3 mt-1.5">
-              {customer.phone && (
-                <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Phone className="size-3.5" /> {customer.phone}
-                </span>
-              )}
-              {creditScore.data && (
-                <RiskBadge risk={creditScore.data.risk_level} />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">
-            Outstanding balance
-          </div>
-          <div className="text-3xl font-bold mt-1">
-            {npr(summary.outstanding_balance)}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {creditScore.isLoading ? (
-          <StatCardSkeleton />
-        ) : (
-          <StatCard
-            label="Credit score"
-            value={
-              creditScoreNotCalculated || !creditScore.data
-                ? "—"
-                : `${creditScore.data.score} / 100`
-            }
-            icon={Gauge}
-            tint="primary"
-          />
-        )}
-        <StatCard
-          label="Total udharo"
-          value={npr(summary.total_udharo)}
-          icon={Receipt}
-          tint="warning"
-        />
-        <StatCard
-          label="Total paid"
-          value={npr(summary.total_paid)}
-          icon={Wallet}
-          tint="success"
-        />
-      </div>
-
-      <Panel>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-sm">Credit score history</h2>
-          {creditScore.data && (
-            <span className="text-xs text-muted-foreground">
-              Latest: {creditScore.data.score} / 100
-            </span>
-          )}
-        </div>
-        {creditScoreHistory.isLoading && (
-          <Skeleton active paragraph={{ rows: 4 }} />
-        )}
-        {creditScoreHistory.isError && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            Couldn't load credit score history.
-          </div>
-        )}
-        {creditScoreHistory.data && creditScoreHistory.data.length === 0 && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            No credit score history yet.
-          </div>
-        )}
-        {creditScoreHistory.data && creditScoreHistory.data.length > 0 && (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={[...creditScoreHistory.data].sort(
-                  (a, b) =>
-                    new Date(a.calculated_at).getTime() -
-                    new Date(b.calculated_at).getTime(),
-                )}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="calculated_at"
-                  stroke="var(--muted-foreground)"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v: string) =>
-                    new Date(v).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  stroke="var(--muted-foreground)"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  width={32}
-                />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "var(--card)",
-                  }}
-                  labelFormatter={(v) => (v ? formatDate(v as string) : "")}
-                  formatter={(value) => [`${value} / 100`, "Score"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                  dot={{
-                    r: 4,
-                    fill: "var(--primary)",
-                    strokeWidth: 2,
-                    stroke: "var(--card)",
-                  }}
-                  activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--card)" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </Panel>
-
-      <br />
-
-      <Panel padding="none">
-        <div className="px-2 py-4 flex items-center justify-between">
-          <h2 className="font-semibold text-sm">Credit statement</h2>
-          <span className="text-xs text-muted-foreground">Running balance</span>
-        </div>
-        <Table<StatementTransaction>
-          columns={columns}
-          dataSource={transactions}
-          rowKey="id"
-          size="middle"
-          pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          locale={{ emptyText: "No transactions yet." }}
-        />
-      </Panel>
+      <Tabs
+        defaultActiveKey="profile"
+        items={[
+          { key: "profile", label: "Profile", children: profileTab },
+          {
+            key: "transactions",
+            label: "Transactions",
+            children: transactionsTab,
+          },
+          { key: "reminders", label: "Reminders", children: remindersTab },
+        ]}
+      />
     </div>
   );
 }
