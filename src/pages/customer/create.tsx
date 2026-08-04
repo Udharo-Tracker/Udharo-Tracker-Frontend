@@ -1,8 +1,15 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { App, Modal, Input, InputNumber, Button, Divider } from "antd";
+import {
+  App,
+  Modal,
+  Input,
+  InputNumber,
+  Button,
+  Divider,
+  Form,
+  Space,
+} from "antd";
 import { UserPlus } from "lucide-react";
-import { Label } from "@/components/shared/Label";
 import { Textarea } from "@/components/shared/Textarea";
 import { useCreateCustomer } from "@/api/customers.api";
 
@@ -13,41 +20,47 @@ interface Props {
 
 export function CreateCustomerModal({ open, onClose }: Props) {
   return (
-    <Modal open={open} onCancel={onClose} footer={null} title="Add customer" destroyOnHidden>
+    <Modal
+      width={620}
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      title="Add customer"
+      destroyOnHidden
+    >
       {open && <CreateCustomerForm onClose={onClose} />}
     </Modal>
   );
+}
+
+interface CreateCustomerFormValues {
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  creditLimit: number;
+  creditTermDays: number;
+  loyaltyDiscount: number;
+  openingBalance: number;
 }
 
 function CreateCustomerForm({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const createCustomer = useCreateCustomer();
+  const [form] = Form.useForm<CreateCustomerFormValues>();
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [creditLimit, setCreditLimit] = useState(0);
-  const [creditTermDays, setCreditTermDays] = useState(0);
-  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0);
-  const [openingBalance, setOpeningBalance] = useState(0);
-
-  const valid = name.trim() && phone.trim();
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!valid) return;
+  const submit = (values: CreateCustomerFormValues) => {
     createCustomer.mutate(
       {
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        address: address.trim(),
-        credit_limit: String(creditLimit),
-        credit_term_days: creditTermDays,
-        loyalty_discount: String(loyaltyDiscount),
-        opening_balance: String(openingBalance),
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        email: values.email?.trim() ?? "",
+        address: values.address?.trim() ?? "",
+        credit_limit: String(values.creditLimit ?? 0),
+        credit_term_days: values.creditTermDays ?? 0,
+        loyalty_discount: String(values.loyaltyDiscount ?? 0),
+        opening_balance: String(values.openingBalance ?? 0),
       },
       {
         onSuccess: (customer) => {
@@ -56,105 +69,120 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
           navigate(`/customers/${customer.id}`);
         },
         onError: (error) => message.error(error.message),
-      }
+      },
     );
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4 pt-2">
-      <div>
-        <Label className="mb-2 block">Name</Label>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Ram Bahadur"
-          className="h-11 rounded-xl"
-          autoFocus
-        />
+    <Form<CreateCustomerFormValues>
+      form={form}
+      layout="vertical"
+      onFinish={submit}
+      className="pt-2"
+      initialValues={{
+        creditLimit: 0,
+        creditTermDays: 0,
+        loyaltyDiscount: 0,
+        openingBalance: 0,
+      }}
+    >
+      <div className="w-full flex flex-col gap-4">
+        <Form.Item
+          label="Name"
+          name="name"
+          rules={[{ required: true, message: "Please enter customer name" }]}
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Input placeholder="e.g. Ram Bahadur" />
+        </Form.Item>
+        <Form.Item
+          label="Phone"
+          name="phone"
+          rules={[{ required: true, message: "Please enter phone number" }]}
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Input placeholder="98xxxxxxxx" />
+        </Form.Item>
+        <Form.Item
+          label="Email"
+          name="email"
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Input placeholder="customer@example.com" />
+        </Form.Item>
+        <Form.Item
+          label="Address"
+          name="address"
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Textarea placeholder="e.g. Baneshwor, Kathmandu" />
+        </Form.Item>
       </div>
-      <div>
-        <Label className="mb-2 block">Phone</Label>
-        <Input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="98xxxxxxxx"
-          className="h-11 rounded-xl"
-        />
-      </div>
-      <div>
-        <Label className="mb-2 block">Email (optional)</Label>
-        <Input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="customer@example.com"
-          className="h-11 rounded-xl"
-        />
-      </div>
-      <div>
-        <Label className="mb-2 block">Address (optional)</Label>
-        <Textarea
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="e.g. Baneshwor, Kathmandu"
-        />
+      <Divider className="my-4!">Credit settings</Divider>
+
+      <div className="w-full grid grid-cols-2 pb-5 gap-4">
+        <Form.Item
+          label="Credit limit"
+          tooltip="Maximum outstanding amount this customer can owe before new udharo entries are blocked."
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Space.Compact style={{ width: "100%" }}>
+            <Form.Item name="creditLimit" noStyle>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+            <Button disabled>Rs</Button>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Credit term"
+          tooltip="Number of days the customer has to clear dues before the balance is considered overdue."
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Space.Compact style={{ width: "100%" }}>
+            <Form.Item name="creditTermDays" noStyle>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+            <Button disabled>Days</Button>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Loyalty discount"
+          tooltip="Discount percentage automatically applied to this customer's purchases."
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Space.Compact style={{ width: "100%" }}>
+            <Form.Item name="loyaltyDiscount" noStyle>
+              <InputNumber min={0} max={100} style={{ width: "100%" }} />
+            </Form.Item>
+            <Button disabled>%</Button>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Opening balance"
+          tooltip="Any existing due amount to carry over when this customer is added."
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Space.Compact style={{ width: "100%" }}>
+            <Form.Item name="openingBalance" noStyle>
+              <InputNumber style={{ width: "100%" }} />
+            </Form.Item>
+            <Button disabled>Rs</Button>
+          </Space.Compact>
+        </Form.Item>
       </div>
 
-      <Divider className="my-2!">Credit settings</Divider>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="mb-2 block">Credit limit</Label>
-          <InputNumber
-            value={creditLimit}
-            onChange={(v) => setCreditLimit(v ?? 0)}
-            min={0}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="Rs"
-          />
-        </div>
-        <div>
-          <Label className="mb-2 block">Credit term</Label>
-          <InputNumber
-            value={creditTermDays}
-            onChange={(v) => setCreditTermDays(v ?? 0)}
-            min={0}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="Days"
-          />
-        </div>
-        <div>
-          <Label className="mb-2 block">Loyalty discount</Label>
-          <InputNumber
-            value={loyaltyDiscount}
-            onChange={(v) => setLoyaltyDiscount(v ?? 0)}
-            min={0}
-            max={100}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="%"
-          />
-        </div>
-        <div>
-          <Label className="mb-2 block">Opening balance</Label>
-          <InputNumber
-            value={openingBalance}
-            onChange={(v) => setOpeningBalance(v ?? 0)}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="Rs"
-          />
-        </div>
-      </div>
-
-      <Button
-        htmlType="submit"
-        type="primary"
-        disabled={!valid}
-        loading={createCustomer.isPending}
-        size="large"
-        block
-        className="rounded-xl disabled:opacity-50"
-      >
-        <UserPlus className="size-4" /> Add customer
-      </Button>
-    </form>
+      <Form.Item className="mb-0! mt-6">
+        <Button
+          htmlType="submit"
+          type="primary"
+          loading={createCustomer.isPending}
+          size="large"
+          block
+          className="rounded-xl"
+        >
+          <UserPlus className="size-4" /> Add customer
+        </Button>
+      </Form.Item>
+    </Form>
   );
 }
