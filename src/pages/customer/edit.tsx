@@ -1,7 +1,15 @@
-import { useState } from "react";
-import { App, Modal, Input, InputNumber, Button, Skeleton, Divider } from "antd";
+import {
+  App,
+  Modal,
+  Input,
+  InputNumber,
+  Button,
+  Skeleton,
+  Divider,
+  Form,
+  Space,
+} from "antd";
 import { Check } from "lucide-react";
-import { Label } from "@/components/shared/Label";
 import { Textarea } from "@/components/shared/Textarea";
 import { useCustomer, useUpdateCustomer } from "@/api/customers.api";
 import type { Customer } from "@/types/customer";
@@ -16,10 +24,21 @@ export function EditCustomerModal({ open, id, onClose }: Props) {
   const customer = useCustomer(id);
 
   return (
-    <Modal open={open} onCancel={onClose} footer={null} title="Edit customer" destroyOnHidden>
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      title="Edit customer"
+      destroyOnHidden
+    >
       {open &&
         (customer.data ? (
-          <EditCustomerForm key={id} id={id} initial={customer.data} onClose={onClose} />
+          <EditCustomerForm
+            key={id}
+            id={id}
+            initial={customer.data}
+            onClose={onClose}
+          />
         ) : (
           <Skeleton active paragraph={{ rows: 3 }} />
         ))}
@@ -27,34 +46,41 @@ export function EditCustomerModal({ open, id, onClose }: Props) {
   );
 }
 
-function EditCustomerForm({ id, initial, onClose }: { id: string; initial: Customer; onClose: () => void }) {
+interface EditCustomerFormValues {
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  creditLimit: number;
+  creditTermDays: number;
+  loyaltyDiscount: number;
+  openingBalance: number;
+}
+
+function EditCustomerForm({
+  id,
+  initial,
+  onClose,
+}: {
+  id: string;
+  initial: Customer;
+  onClose: () => void;
+}) {
   const { message } = App.useApp();
   const updateCustomer = useUpdateCustomer(id);
+  const [form] = Form.useForm<EditCustomerFormValues>();
 
-  const [name, setName] = useState(initial.name);
-  const [phone, setPhone] = useState(initial.phone);
-  const [email, setEmail] = useState(initial.email);
-  const [address, setAddress] = useState(initial.address);
-  const [creditLimit, setCreditLimit] = useState(Number(initial.credit_limit) || 0);
-  const [creditTermDays, setCreditTermDays] = useState(initial.credit_term_days);
-  const [loyaltyDiscount, setLoyaltyDiscount] = useState(Number(initial.loyalty_discount) || 0);
-  const [openingBalance, setOpeningBalance] = useState(Number(initial.opening_balance) || 0);
-
-  const valid = name.trim() && phone.trim();
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!valid) return;
+  const submit = (values: EditCustomerFormValues) => {
     updateCustomer.mutate(
       {
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        address: address.trim(),
-        credit_limit: String(creditLimit),
-        credit_term_days: creditTermDays,
-        loyalty_discount: String(loyaltyDiscount),
-        opening_balance: String(openingBalance),
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        email: values.email?.trim() ?? "",
+        address: values.address?.trim() ?? "",
+        credit_limit: String(values.creditLimit ?? 0),
+        credit_term_days: values.creditTermDays ?? 0,
+        loyalty_discount: String(values.loyaltyDiscount ?? 0),
+        opening_balance: String(values.openingBalance ?? 0),
       },
       {
         onSuccess: () => {
@@ -62,85 +88,131 @@ function EditCustomerForm({ id, initial, onClose }: { id: string; initial: Custo
           onClose();
         },
         onError: (error) => message.error(error.message),
-      }
+      },
     );
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4 pt-2">
-      <div>
-        <Label className="mb-2 block">Name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} className="h-11 rounded-xl" autoFocus />
-      </div>
-      <div>
-        <Label className="mb-2 block">Phone</Label>
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 rounded-xl" />
-      </div>
-      <div>
-        <Label className="mb-2 block">Email (optional)</Label>
-        <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" />
-      </div>
-      <div>
-        <Label className="mb-2 block">Address (optional)</Label>
-        <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
-      </div>
+    <Form<EditCustomerFormValues>
+      form={form}
+      layout="vertical"
+      onFinish={submit}
+      className="pt-2"
+      initialValues={{
+        name: initial.name,
+        phone: initial.phone,
+        email: initial.email,
+        address: initial.address,
+        creditLimit: Number(initial.credit_limit) || 0,
+        creditTermDays: initial.credit_term_days,
+        loyaltyDiscount: Number(initial.loyalty_discount) || 0,
+        openingBalance: Number(initial.opening_balance) || 0,
+      }}
+    >
+      <Form.Item
+        label="Name"
+        name="name"
+        rules={[{ required: true, message: "Please enter customer name" }]}
+      >
+        <Input className="h-11 rounded-xl" autoFocus />
+      </Form.Item>
+      <Form.Item
+        label="Phone"
+        name="phone"
+        rules={[{ required: true, message: "Please enter phone number" }]}
+      >
+        <Input className="h-11 rounded-xl" />
+      </Form.Item>
+      <Form.Item label="Email" name="email">
+        <Input className="h-11 rounded-xl" />
+      </Form.Item>
+      <Form.Item label="Address" name="address">
+        <Textarea />
+      </Form.Item>
 
       <Divider className="my-2!">Credit settings</Divider>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="mb-2 block">Credit limit</Label>
-          <InputNumber
-            value={creditLimit}
-            onChange={(v) => setCreditLimit(v ?? 0)}
-            min={0}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="Rs"
-          />
-        </div>
-        <div>
-          <Label className="mb-2 block">Credit term</Label>
-          <InputNumber
-            value={creditTermDays}
-            onChange={(v) => setCreditTermDays(v ?? 0)}
-            min={0}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="Days"
-          />
-        </div>
-        <div>
-          <Label className="mb-2 block">Loyalty discount</Label>
-          <InputNumber
-            value={loyaltyDiscount}
-            onChange={(v) => setLoyaltyDiscount(v ?? 0)}
-            min={0}
-            max={100}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="%"
-          />
-        </div>
-        <div>
-          <Label className="mb-2 block">Opening balance</Label>
-          <InputNumber
-            value={openingBalance}
-            onChange={(v) => setOpeningBalance(v ?? 0)}
-            className="h-11 w-full rounded-xl [&_input]:h-11!"
-            addonAfter="Rs"
-          />
-        </div>
+        <Form.Item
+          label="Credit limit"
+          tooltip="Maximum outstanding amount this customer can owe before new udharo entries are blocked."
+          className="mb-0!"
+        >
+          <Space.Compact className="w-full">
+            <Form.Item name="creditLimit" noStyle>
+              <InputNumber
+                min={0}
+                className="h-11 w-full rounded-l-xl [&_input]:h-11!"
+              />
+            </Form.Item>
+            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
+              Rs
+            </Button>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Credit term"
+          tooltip="Number of days the customer has to clear dues before the balance is considered overdue."
+          className="mb-0!"
+        >
+          <Space.Compact className="w-full">
+            <Form.Item name="creditTermDays" noStyle>
+              <InputNumber
+                min={0}
+                className="h-11 w-full rounded-l-xl [&_input]:h-11!"
+              />
+            </Form.Item>
+            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
+              Days
+            </Button>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Loyalty discount"
+          tooltip="Discount percentage automatically applied to this customer's purchases."
+          className="mb-0!"
+        >
+          <Space.Compact className="w-full">
+            <Form.Item name="loyaltyDiscount" noStyle>
+              <InputNumber
+                min={0}
+                max={100}
+                className="h-11 w-full rounded-l-xl [&_input]:h-11!"
+              />
+            </Form.Item>
+            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
+              %
+            </Button>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Opening balance"
+          tooltip="Any existing due amount to carry over when this customer is added."
+          className="mb-0!"
+        >
+          <Space.Compact className="w-full">
+            <Form.Item name="openingBalance" noStyle>
+              <InputNumber className="h-11 w-full rounded-l-xl [&_input]:h-11!" />
+            </Form.Item>
+            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
+              Rs
+            </Button>
+          </Space.Compact>
+        </Form.Item>
       </div>
 
-      <Button
-        htmlType="submit"
-        type="primary"
-        disabled={!valid}
-        loading={updateCustomer.isPending}
-        size="large"
-        block
-        className="rounded-xl disabled:opacity-50"
-      >
-        <Check className="size-4" /> Save changes
-      </Button>
-    </form>
+      <Form.Item className="mb-0! mt-6">
+        <Button
+          htmlType="submit"
+          type="primary"
+          loading={updateCustomer.isPending}
+          size="large"
+          block
+          className="rounded-xl"
+        >
+          <Check className="size-4" /> Save changes
+        </Button>
+      </Form.Item>
+    </Form>
   );
 }

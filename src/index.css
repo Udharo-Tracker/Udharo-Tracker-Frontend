@@ -151,6 +151,67 @@
   }
 }
 
+/* ── Ant Design overrides ───────────────────────────────────────────────────── */
+
+/* Modal: always centered in the viewport with breathing room on all sides;
+   if the requested width/height exceeds the available space, the modal is
+   capped to that space and its body scrolls instead of overflowing. */
+.ant-modal-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.ant-modal {
+  top: 0;
+  margin: 0;
+  max-width: calc(100vw - 64px);
+  padding-bottom: 0;
+}
+
+.ant-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+}
+
+.ant-modal .ant-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.custom-card .ant-card-actions {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 16px;
+}
+
+.ant-form-item-explain,
+.ant-form-item-extra,
+.ant-form-item-explain-error {
+  text-align: left;
+}
+
+.ant-table-tbody > tr:nth-child(odd) {
+  background-color: var(--background);
+}
+
+.ant-table-tbody > tr:nth-child(even) {
+  background-color: var(--muted);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .ant-tag {
   border-radius: 9999px;
 }
