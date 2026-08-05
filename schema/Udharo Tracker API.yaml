@@ -559,6 +559,54 @@ paths:
                   summary: Example response
           description: Total outstanding balance across all customers, with a per-customer
             breakdown and risk level.
+  /api/v1/ledger/transactions/:
+    get:
+      operationId: api_v1_ledger_transactions_list
+      parameters:
+      - in: query
+        name: customer_id
+        schema:
+          type: string
+        description: Filter transactions by customer UUID.
+      - in: query
+        name: type
+        schema:
+          type: string
+        description: 'Filter transactions by type: opening, udharo, or payment.'
+      tags:
+      - Transactions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+          description: ''
+  /api/v1/ledger/transactions/{id}/:
+    get:
+      operationId: api_v1_ledger_transactions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Transactions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
   /api/v1/payments/:
     get:
       operationId: api_v1_payments_list
@@ -1639,6 +1687,55 @@ components:
           writeOnly: true
       required:
       - token
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        txn_number:
+          type: string
+          readOnly: true
+        type:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        status:
+          type: string
+          maxLength: 10
+        remarks:
+          type: string
+        transaction_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        customer:
+          allOf:
+          - $ref: '#/components/schemas/Customer'
+          readOnly: true
+        recorded_by:
+          type: string
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - customer
+      - id
+      - recorded_by
+      - title
+      - transaction_date
+      - txn_number
+      - type
     UdharoEntry:
       type: object
       properties:
