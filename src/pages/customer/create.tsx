@@ -63,10 +63,10 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
         opening_balance: String(values.openingBalance ?? 0),
       },
       {
-        onSuccess: (customer) => {
+        onSuccess: () => {
           message.success("Customer added");
           onClose();
-          navigate(`/customers/${customer.id}`);
+          navigate("/customers");
         },
         onError: (error) => message.error(error.message),
       },
