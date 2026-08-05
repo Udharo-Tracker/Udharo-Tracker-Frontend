@@ -2,7 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { App, Alert, Table, Dropdown, Tag, Input, Button } from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
-import { Eye, MoreHorizontal, Pencil, PlusCircle, Search, Trash2 } from "lucide-react";
+import {
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  PlusCircle,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useUdharoEntries, useDeleteUdharoEntry } from "@/api/udharo.api";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
@@ -25,7 +32,8 @@ export function UdharoList() {
   const confirmDelete = (id: string) => {
     modal.confirm({
       title: "Delete this udharo entry?",
-      content: "This cannot be undone and will affect the customer's outstanding balance.",
+      content:
+        "This cannot be undone and will affect the customer's outstanding balance.",
       okText: "Delete",
       okType: "danger",
       onOk: () =>
@@ -38,11 +46,14 @@ export function UdharoList() {
 
   const sorted = useMemo(
     () => [...entries].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [entries]
+    [entries],
   );
   const filtered = useMemo(
-    () => sorted.filter((e) => e.customer.name.toLowerCase().includes(q.toLowerCase())),
-    [sorted, q]
+    () =>
+      sorted.filter((e) =>
+        e.customer.name.toLowerCase().includes(q.toLowerCase()),
+      ),
+    [sorted, q],
   );
 
   const columns: TableColumnsType<UdharoEntry> = [
@@ -63,7 +74,8 @@ export function UdharoList() {
       key: "items",
       ellipsis: true,
       render: (items: UdharoEntry["items"], record) =>
-        items.map((i) => i.item_name).join(", ") || record.created_at.slice(0, 10),
+        items.map((i) => i.item_name).join(", ") ||
+        record.created_at.slice(0, 10),
     },
     {
       title: "Status",
@@ -76,9 +88,13 @@ export function UdharoList() {
       onFilter: (value, record) => record.is_settled === value,
       render: (isSettled: boolean) =>
         isSettled ? (
-          <Tag color="success" variant="outlined">Settled</Tag>
+          <Tag color="success" variant="outlined">
+            Settled
+          </Tag>
         ) : (
-          <Tag color="warning" variant="outlined">Pending</Tag>
+          <Tag color="warning" variant="outlined">
+            Pending
+          </Tag>
         ),
     },
     {
@@ -86,7 +102,9 @@ export function UdharoList() {
       dataIndex: "total_amount",
       key: "total_amount",
       align: "right",
-      render: (amount: string) => <span className="font-semibold">{npr(amount)}</span>,
+      render: (amount: string) => (
+        <span className="font-semibold">{npr(amount)}</span>
+      ),
       sorter: (a, b) => Number(a.total_amount) - Number(b.total_amount),
     },
     {
@@ -124,7 +142,14 @@ export function UdharoList() {
           },
         ];
         return (
-          <Dropdown menu={{ items }} trigger={["hover", "click"]} placement="bottomRight">
+          <Dropdown
+            menu={{
+              items,
+              onClick: (info) => info.domEvent.stopPropagation(),
+            }}
+            trigger={["hover", "click"]}
+            placement="bottomRight"
+          >
             <button
               type="button"
               onClick={(e) => e.stopPropagation()}
@@ -155,16 +180,28 @@ export function UdharoList() {
                   autoFocus
                   placeholder="Search by customer…"
                   value={q}
-                  prefix={<Search size={15} className="text-muted-foreground shrink-0" />}
+                  prefix={
+                    <Search
+                      size={15}
+                      className="text-muted-foreground shrink-0"
+                    />
+                  }
                   onChange={(e) => setQ(e.target.value)}
                   onBlur={() => setSearchFocused(false)}
                   className="h-8 w-50 border-none bg-card"
                 />
               ) : (
-                <Button onClick={() => setSearchFocused(true)} icon={<Search size={15} />} />
+                <Button
+                  onClick={() => setSearchFocused(true)}
+                  icon={<Search size={15} />}
+                />
               )}
             </div>
-            <Button type="primary" icon={<PlusCircle className="size-4" />} onClick={() => openCreateUdharo()}>
+            <Button
+              type="primary"
+              icon={<PlusCircle className="size-4" />}
+              onClick={() => openCreateUdharo()}
+            >
               Add udharo
             </Button>
           </>
@@ -172,7 +209,12 @@ export function UdharoList() {
       />
 
       {isError && (
-        <Alert type="error" showIcon title="Couldn't load udharo entries" description={(error as Error).message} />
+        <Alert
+          type="error"
+          showIcon
+          title="Couldn't load udharo entries"
+          description={(error as Error).message}
+        />
       )}
 
       <Panel padding="none">
