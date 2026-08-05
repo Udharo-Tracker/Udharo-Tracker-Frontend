@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Skeleton, Alert, App, Table, Button, Tabs, Modal } from "antd";
+import { Skeleton, Alert, App, Table, Button, Tabs, Modal, Empty } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Scale,
   Copy,
+  PlusCircle,
 } from "lucide-react";
 import {
   CartesianGrid,
@@ -26,6 +27,7 @@ import {
   YAxis,
 } from "recharts";
 import { useCustomerStatement } from "@/api/statement.api";
+import { useCustomerTransactions } from "@/api/transactions.api";
 import {
   useCustomerCreditScore,
   useCustomerCreditScoreHistory,
@@ -44,15 +46,21 @@ import { Label } from "@/components/shared/Label";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 import { formatDate, formatDateOnly } from "@/utils/date";
-import type { StatementTransaction } from "@/types/statement";
+import type { Transaction } from "@/types/transaction";
 import type { ReminderLog } from "@/types/reminder";
+
+interface LedgerRow extends Transaction {
+  balance: number;
+}
 
 export function CustomerDetail() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message, modal } = App.useApp();
-  const { openEditCustomer } = useEntityModals();
+  const { openEditCustomer, openCreatePayment, openCreateUdharo } =
+    useEntityModals();
   const statement = useCustomerStatement(id);
+  const customerTransactions = useCustomerTransactions(id);
   const creditScore = useCustomerCreditScore(id);
   const creditScoreHistory = useCustomerCreditScoreHistory(id);
   const deleteCustomer = useDeleteCustomer();
@@ -116,12 +124,39 @@ export function CustomerDetail() {
     );
   }
 
-  const { customer, summary, transactions } = statement.data;
+  const { customer, summary } = statement.data;
 
-  const columns: TableColumnsType<StatementTransaction> = [
+  // The ledger transactions endpoint doesn't return a running balance, so we
+  // derive one client-side: opening + udharo entries add to what the
+  // customer owes, payments reduce it.
+  const ledgerRows: LedgerRow[] = (() => {
+    const chronological = [...(customerTransactions.data ?? [])].sort(
+      (a, b) =>
+        new Date(a.transaction_date).getTime() -
+        new Date(b.transaction_date).getTime(),
+    );
+    const withBalance = chronological.reduce<LedgerRow[]>((rows, t) => {
+      const amount = Number(t.amount);
+      const previousBalance = rows.length ? rows[rows.length - 1].balance : 0;
+      const balance =
+        previousBalance + (t.type === "payment" ? -amount : amount);
+      return [...rows, { ...t, balance }];
+    }, []);
+    return withBalance.reverse();
+  })();
+
+  const columns: TableColumnsType<LedgerRow> = [
+    {
+      title: "Txn #",
+      dataIndex: "txn_number",
+      key: "txn_number",
+      render: (txnNumber: string) => (
+        <span className="text-muted-foreground">{txnNumber}</span>
+      ),
+    },
     {
       title: "Date",
-      dataIndex: "date",
+      dataIndex: "transaction_date",
       key: "date",
       render: (date: string) => (
         <span className="text-muted-foreground">{formatDate(date)}</span>
@@ -131,28 +166,41 @@ export function CustomerDetail() {
       title: "Detail",
       key: "detail",
       render: (_, t) => (
-        <span className="inline-flex items-center gap-2">
-          <span
-            className={`size-1.5 rounded-full ${t.type === "udharo" ? "bg-warning" : "bg-success"}`}
-          />
-          {t.note ||
-            (t.type === "udharo" ? "Udharo entry" : "Payment received")}
-        </span>
+        <div>
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={`size-1.5 rounded-full ${
+                t.type === "udharo"
+                  ? "bg-warning"
+                  : t.type === "payment"
+                    ? "bg-success"
+                    : "bg-muted-foreground"
+              }`}
+            />
+            {t.title}
+          </span>
+          {t.remarks && (
+            <div className="text-xs text-muted-foreground mt-0.5 ml-3.5">
+              {t.remarks}
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      title: "Udharo",
+      title: "Debit",
       dataIndex: "amount",
-      key: "udharo",
+      key: "debit",
       align: "right",
-      render: (amount: number, t) => (t.type === "udharo" ? npr(amount) : "—"),
+      render: (amount: string, t) =>
+        t.type === "udharo" || t.type === "opening" ? npr(amount) : "—",
     },
     {
-      title: "Payment",
+      title: "Credit",
       dataIndex: "amount",
-      key: "payment",
+      key: "credit",
       align: "right",
-      render: (amount: number, t) =>
+      render: (amount: string, t) =>
         t.type === "payment" ? (
           <span className="text-success">{npr(amount)}</span>
         ) : (
@@ -219,7 +267,10 @@ export function CustomerDetail() {
   const creditLimit = Number(customer.credit_limit) || 0;
   const usedPct =
     creditLimit > 0
-      ? Math.min(100, Math.round((summary.outstanding_balance / creditLimit) * 100))
+      ? Math.min(
+          100,
+          Math.round((summary.outstanding_balance / creditLimit) * 100),
+        )
       : 0;
   const usedFillClass =
     usedPct >= 90 ? "bg-danger" : usedPct >= 60 ? "bg-warning" : "bg-success";
@@ -492,15 +543,44 @@ export function CustomerDetail() {
         <h2 className="font-semibold text-base">Credit statement</h2>
         <span className="text-xs text-muted-foreground">Running balance</span>
       </div>
+      {customerTransactions.isError && (
+        <Alert
+          type="error"
+          showIcon
+          title="Couldn't load transactions"
+          description={
+            customerTransactions.error instanceof Error
+              ? customerTransactions.error.message
+              : "Unknown error"
+          }
+        />
+      )}
       <Panel padding="none">
         {" "}
-        <Table<StatementTransaction>
+        <Table<LedgerRow>
           columns={columns}
-          dataSource={transactions}
+          dataSource={ledgerRows}
+          loading={customerTransactions.isLoading}
           rowKey="id"
           size="middle"
+          scroll={{ x: true }}
           pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          locale={{ emptyText: "No transactions yet." }}
+          locale={{
+            emptyText: (
+              <Empty
+                description={
+                  <div>
+                    <p className="text-base font-bold text-foreground">
+                      No transaction found
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Create a new transaction or import a new data.{" "}
+                    </p>
+                  </div>
+                }
+              />
+            ),
+          }}
         />
       </Panel>
     </div>
@@ -537,7 +617,22 @@ export function CustomerDetail() {
               rowKey="id"
               size="middle"
               pagination={{ pageSize: 10, hideOnSinglePage: true }}
-              locale={{ emptyText: "No reminders logged yet." }}
+              locale={{
+                emptyText: (
+                  <Empty
+                    description={
+                      <div>
+                        <p className="text-base font-bold text-foreground">
+                          No SMS Logs found
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Records will appear here once available.
+                        </p>
+                      </div>
+                    }
+                  />
+                ),
+              }}
             />
           </Panel>
         )}
@@ -607,6 +702,22 @@ export function CustomerDetail() {
 
         <div className="flex items-center gap-1">
           <Button
+            danger
+            icon={<PlusCircle className="size-4" />}
+            onClick={() => openCreateUdharo(id)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground font-medium hover:text-foreground hover:bg-muted"
+          >
+            Add udharo
+          </Button>
+          <Button
+            type="primary"
+            icon={<Wallet className="size-4" />}
+            onClick={() => openCreatePayment(id)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground font-medium hover:text-foreground hover:bg-muted"
+          >
+            Add payment
+          </Button>
+          <Button
             icon={<Pencil className="size-4" />}
             onClick={() => openEditCustomer(id)}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground font-medium hover:text-foreground hover:bg-muted"
@@ -618,9 +729,7 @@ export function CustomerDetail() {
             danger
             onClick={confirmDelete}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-danger font-medium hover:bg-danger-soft"
-          >
-            Delete
-          </Button>
+          />
         </div>
       </div>
 
