@@ -2,7 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { App, Alert, Table, Dropdown, Input, Button } from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
-import { Eye, MoreHorizontal, Pencil, Search, Trash2, Wallet } from "lucide-react";
+import {
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  Search,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import { usePayments, useDeletePayment } from "@/api/payments.api";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
@@ -25,7 +32,8 @@ export function PaymentsList() {
   const confirmDelete = (id: string) => {
     modal.confirm({
       title: "Delete this payment?",
-      content: "This cannot be undone and will affect the customer's outstanding balance.",
+      content:
+        "This cannot be undone and will affect the customer's outstanding balance.",
       okText: "Delete",
       okType: "danger",
       onOk: () =>
@@ -37,12 +45,16 @@ export function PaymentsList() {
   };
 
   const sorted = useMemo(
-    () => [...payments].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [payments]
+    () =>
+      [...payments].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [payments],
   );
   const filtered = useMemo(
-    () => sorted.filter((p) => p.customer.name.toLowerCase().includes(q.toLowerCase())),
-    [sorted, q]
+    () =>
+      sorted.filter((p) =>
+        p.customer.name.toLowerCase().includes(q.toLowerCase()),
+      ),
+    [sorted, q],
   );
 
   const columns: TableColumnsType<Payment> = [
@@ -61,7 +73,8 @@ export function PaymentsList() {
       title: "Note",
       dataIndex: "note",
       key: "note",
-      render: (note: string | undefined, record) => note || formatDate(record.created_at),
+      render: (note: string | undefined, record) =>
+        note || formatDate(record.created_at),
       ellipsis: true,
     },
     {
@@ -69,7 +82,9 @@ export function PaymentsList() {
       dataIndex: "amount_paid",
       key: "amount_paid",
       align: "right",
-      render: (amount: string) => <span className="font-semibold text-success">{npr(amount)}</span>,
+      render: (amount: string) => (
+        <span className="font-semibold text-success">{npr(amount)}</span>
+      ),
       sorter: (a, b) => Number(a.amount_paid) - Number(b.amount_paid),
     },
     {
@@ -107,7 +122,14 @@ export function PaymentsList() {
           },
         ];
         return (
-          <Dropdown menu={{ items }} trigger={["hover", "click"]} placement="bottomRight">
+          <Dropdown
+            menu={{
+              items,
+              onClick: (info) => info.domEvent.stopPropagation(),
+            }}
+            trigger={["hover", "click"]}
+            placement="bottomRight"
+          >
             <button
               type="button"
               onClick={(e) => e.stopPropagation()}
@@ -138,16 +160,28 @@ export function PaymentsList() {
                   autoFocus
                   placeholder="Search by customer…"
                   value={q}
-                  prefix={<Search size={15} className="text-muted-foreground shrink-0" />}
+                  prefix={
+                    <Search
+                      size={15}
+                      className="text-muted-foreground shrink-0"
+                    />
+                  }
                   onChange={(e) => setQ(e.target.value)}
                   onBlur={() => setSearchFocused(false)}
                   className="h-8 w-50 border-none bg-card"
                 />
               ) : (
-                <Button onClick={() => setSearchFocused(true)} icon={<Search size={15} />} />
+                <Button
+                  onClick={() => setSearchFocused(true)}
+                  icon={<Search size={15} />}
+                />
               )}
             </div>
-            <Button type="primary" icon={<Wallet className="size-4" />} onClick={() => openCreatePayment()}>
+            <Button
+              type="primary"
+              icon={<Wallet className="size-4" />}
+              onClick={() => openCreatePayment()}
+            >
               Record payment
             </Button>
           </>
@@ -155,7 +189,12 @@ export function PaymentsList() {
       />
 
       {isError && (
-        <Alert type="error" showIcon title="Couldn't load payments" description={(error as Error).message} />
+        <Alert
+          type="error"
+          showIcon
+          title="Couldn't load payments"
+          description={(error as Error).message}
+        />
       )}
 
       <Panel padding="none">

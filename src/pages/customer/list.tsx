@@ -141,7 +141,10 @@ export function CustomersList() {
         ];
         return (
           <Dropdown
-            menu={{ items }}
+            menu={{
+              items,
+              onClick: (info) => info.domEvent.stopPropagation(),
+            }}
             trigger={["hover", "click"]}
             placement="bottomRight"
           >
