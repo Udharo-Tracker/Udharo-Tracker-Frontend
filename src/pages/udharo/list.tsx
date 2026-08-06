@@ -17,7 +17,6 @@ import { formatDate } from "@/utils/date";
 import { CustomerAvatar } from "@/components/shared/CustomerAvatar";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Panel } from "@/components/shared/Panel";
-import type { UdharoEntry } from "@/types/udharo";
 
 export function UdharoList() {
   const navigate = useNavigate();
