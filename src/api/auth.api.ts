@@ -1,32 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, clearAuthTokens, getRefreshToken, setAuthTokens } from "./client";
+import {
+  apiClient,
+  clearAuthTokens,
+  getRefreshToken,
+  setAuthTokens,
+} from "./client";
 import { useAuth } from "@/hooks/use-auth";
-import type {
-  AuthTokenPair,
-  LoginInput,
-  TokenBlacklistInput,
-  TokenRefreshInput,
-  TokenRefreshResponse,
-  TokenVerifyInput,
-} from "@/types/auth";
-import type {
-  UserChangePasswordInput,
-  UserForgotPasswordInput,
-  UserPasswordResetInput,
-  UserRegisterInput,
-} from "@/types/user";
-import type { UserProfile } from "@/types/user";
 
 export function login(input: LoginInput) {
   return apiClient.post<AuthTokenPair>("/auth/token/", input, { auth: false });
 }
 
 export function refreshToken(input: TokenRefreshInput) {
-  return apiClient.post<TokenRefreshResponse>("/auth/token/refresh/", input, { auth: false });
+  return apiClient.post<TokenRefreshResponse>("/auth/token/refresh/", input, {
+    auth: false,
+  });
 }
 
 export function verifyToken(input: TokenVerifyInput) {
-  return apiClient.post<TokenVerifyInput>("/auth/token/verify/", input, { auth: false });
+  return apiClient.post<TokenVerifyInput>("/auth/token/verify/", input, {
+    auth: false,
+  });
 }
 
 export function blacklistToken(input: TokenBlacklistInput) {
@@ -38,15 +32,26 @@ export function register(input: UserRegisterInput) {
 }
 
 export function forgotPassword(input: UserForgotPasswordInput) {
-  return apiClient.post<UserForgotPasswordInput>("/user/forgot-password/", input, { auth: false });
+  return apiClient.post<UserForgotPasswordInput>(
+    "/user/forgot-password/",
+    input,
+    { auth: false },
+  );
 }
 
 export function resetPassword(input: UserPasswordResetInput) {
-  return apiClient.post<UserPasswordResetInput>("/user/password/reset/", input, { auth: false });
+  return apiClient.post<UserPasswordResetInput>(
+    "/user/password/reset/",
+    input,
+    { auth: false },
+  );
 }
 
 export function changePassword(input: UserChangePasswordInput) {
-  return apiClient.put<UserChangePasswordInput>("/user/change-password/", input);
+  return apiClient.put<UserChangePasswordInput>(
+    "/user/change-password/",
+    input,
+  );
 }
 
 export function useLogin() {

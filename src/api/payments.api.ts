@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import type { Payment, PaymentInput, PaymentUpdateInput } from "@/types/payment";
+import { customersQueryKeys } from "./customers.api";
+import { transactionsQueryKeys } from "./transactions.api";
+import { ledgerQueryKeys } from "./ledger.api";
 
 export const paymentsQueryKeys = {
   all: ["payments"] as const,
@@ -48,11 +50,25 @@ export function usePayment(id: string) {
   });
 }
 
+// Recording a payment also moves the affected customer's outstanding
+// balance, the ledger transaction list, and the dashboard/summary totals —
+// all of those caches need to be invalidated alongside the payments list,
+// or screens showing them keep stale data until a manual reload.
+function invalidateAffectedByPayment(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.lists() });
+  queryClient.invalidateQueries({ queryKey: customersQueryKeys.all });
+  queryClient.invalidateQueries({ queryKey: transactionsQueryKeys.all });
+  queryClient.invalidateQueries({ queryKey: ledgerQueryKeys.dashboard });
+  queryClient.invalidateQueries({ queryKey: ledgerQueryKeys.summary });
+}
+
 export function useCreatePayment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createPayment,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.lists() }),
+    onSuccess: () => invalidateAffectedByPayment(queryClient),
   });
 }
 
@@ -62,7 +78,7 @@ export function useUpdatePayment(id: string) {
     mutationFn: (input: PaymentInput) => updatePayment(id, input),
     onSuccess: (data) => {
       queryClient.setQueryData(paymentsQueryKeys.detail(id), data);
-      queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.lists() });
+      invalidateAffectedByPayment(queryClient);
     },
   });
 }
@@ -73,7 +89,7 @@ export function usePatchPayment(id: string) {
     mutationFn: (input: PaymentUpdateInput) => patchPayment(id, input),
     onSuccess: (data) => {
       queryClient.setQueryData(paymentsQueryKeys.detail(id), data);
-      queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.lists() });
+      invalidateAffectedByPayment(queryClient);
     },
   });
 }
@@ -82,6 +98,6 @@ export function useDeletePayment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deletePayment,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.lists() }),
+    onSuccess: () => invalidateAffectedByPayment(queryClient),
   });
 }

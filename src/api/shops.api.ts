@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import type { Shop, ShopInput, ShopUpdateInput } from "@/types/shop";
 
 export const shopsQueryKeys = {
   all: ["shops"] as const,
@@ -52,7 +51,8 @@ export function useCreateShop() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createShop,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: shopsQueryKeys.lists() }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: shopsQueryKeys.lists() }),
   });
 }
 
@@ -82,6 +82,7 @@ export function useDeleteShop() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteShop,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: shopsQueryKeys.lists() }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: shopsQueryKeys.lists() }),
   });
 }
