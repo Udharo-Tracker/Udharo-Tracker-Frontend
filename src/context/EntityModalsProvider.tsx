@@ -6,6 +6,7 @@ import { CreatePaymentModal } from "@/pages/payment/create";
 import { EditPaymentModal } from "@/pages/payment/edit";
 import { CreateUdharoModal } from "@/pages/udharo/create";
 import { EditUdharoModal } from "@/pages/udharo/edit";
+import { TransactionDetailDrawer } from "@/pages/transaction/detail";
 
 type ModalState =
   | { type: "none" }
@@ -14,7 +15,8 @@ type ModalState =
   | { type: "create-payment"; customerId?: string }
   | { type: "edit-payment"; id: string }
   | { type: "create-udharo"; customerId?: string }
-  | { type: "edit-udharo"; id: string };
+  | { type: "edit-udharo"; id: string }
+  | { type: "view-transaction"; id: string };
 
 export function EntityModalsProvider({ children }: { children: ReactNode }) {
   const [modal, setModal] = useState<ModalState>({ type: "none" });
@@ -24,18 +26,25 @@ export function EntityModalsProvider({ children }: { children: ReactNode }) {
     () => ({
       openCreateCustomer: () => setModal({ type: "create-customer" }),
       openEditCustomer: (id: string) => setModal({ type: "edit-customer", id }),
-      openCreatePayment: (customerId?: string) => setModal({ type: "create-payment", customerId }),
+      openCreatePayment: (customerId?: string) =>
+        setModal({ type: "create-payment", customerId }),
       openEditPayment: (id: string) => setModal({ type: "edit-payment", id }),
-      openCreateUdharo: (customerId?: string) => setModal({ type: "create-udharo", customerId }),
+      openCreateUdharo: (customerId?: string) =>
+        setModal({ type: "create-udharo", customerId }),
       openEditUdharo: (id: string) => setModal({ type: "edit-udharo", id }),
+      openTransactionDetail: (id: string) =>
+        setModal({ type: "view-transaction", id }),
     }),
-    []
+    [],
   );
 
   return (
     <EntityModalsContext.Provider value={value}>
       {children}
-      <CreateCustomerModal open={modal.type === "create-customer"} onClose={close} />
+      <CreateCustomerModal
+        open={modal.type === "create-customer"}
+        onClose={close}
+      />
       <EditCustomerModal
         open={modal.type === "edit-customer"}
         id={modal.type === "edit-customer" ? modal.id : ""}
@@ -43,7 +52,9 @@ export function EntityModalsProvider({ children }: { children: ReactNode }) {
       />
       <CreatePaymentModal
         open={modal.type === "create-payment"}
-        customerId={modal.type === "create-payment" ? modal.customerId : undefined}
+        customerId={
+          modal.type === "create-payment" ? modal.customerId : undefined
+        }
         onClose={close}
       />
       <EditPaymentModal
@@ -53,12 +64,19 @@ export function EntityModalsProvider({ children }: { children: ReactNode }) {
       />
       <CreateUdharoModal
         open={modal.type === "create-udharo"}
-        customerId={modal.type === "create-udharo" ? modal.customerId : undefined}
+        customerId={
+          modal.type === "create-udharo" ? modal.customerId : undefined
+        }
         onClose={close}
       />
       <EditUdharoModal
         open={modal.type === "edit-udharo"}
         id={modal.type === "edit-udharo" ? modal.id : ""}
+        onClose={close}
+      />
+      <TransactionDetailDrawer
+        open={modal.type === "view-transaction"}
+        id={modal.type === "view-transaction" ? modal.id : ""}
         onClose={close}
       />
     </EntityModalsContext.Provider>
