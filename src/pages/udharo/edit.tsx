@@ -4,7 +4,6 @@ import { Textarea } from "@/components/shared/Textarea";
 import { Label } from "@/components/shared/Label";
 import { useUdharoEntry, useUpdateUdharoEntry } from "@/api/udharo.api";
 import { npr } from "@/lib/currency";
-import type { UdharoEntry } from "@/types/udharo";
 
 interface Props {
   open: boolean;
