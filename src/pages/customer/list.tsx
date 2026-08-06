@@ -23,7 +23,6 @@ import { StatCard, StatCardSkeleton } from "@/components/shared/StatCard";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 import { formatDateOnly } from "@/utils/date";
-import type { CustomerBalanceSummary } from "@/types/ledger";
 
 export function CustomersList() {
   const { data, isLoading, isError, error } = useLedgerSummary();
