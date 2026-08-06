@@ -1,6 +1,4 @@
-import type { CreditRiskLevel } from "./credit-score";
-
-export interface CustomerBalanceSummary {
+interface CustomerBalanceSummary {
   id: string;
   name: string;
   phone: string;
@@ -11,7 +9,7 @@ export interface CustomerBalanceSummary {
   risk: CreditRiskLevel;
 }
 
-export interface DashboardSummary {
+interface DashboardSummary {
   total_credit_given: number;
   total_recovered: number;
   total_pending: number;
@@ -19,12 +17,12 @@ export interface DashboardSummary {
   top_5_debtors: CustomerBalanceSummary[];
 }
 
-export interface LedgerSummary {
+interface LedgerSummary {
   total_outstanding: number;
   customers_summary: CustomerBalanceSummary[];
 }
 
-export interface MonthlyBreakdown {
+interface MonthlyBreakdown {
   month: number;
   month_name: string;
   total_udharo: number;
@@ -34,7 +32,7 @@ export interface MonthlyBreakdown {
   payment_count: number;
 }
 
-export interface YearlyReport {
+interface YearlyReport {
   year: number;
   months: MonthlyBreakdown[];
   yearly_totals: {
@@ -44,7 +42,7 @@ export interface YearlyReport {
   };
 }
 
-export interface DailyBreakdown {
+interface DailyBreakdown {
   date: string;
   total_udharo: number;
   total_payments: number;
@@ -53,7 +51,7 @@ export interface DailyBreakdown {
   payment_count: number;
 }
 
-export interface MonthlyDetailReport {
+interface MonthlyDetailReport {
   year: number;
   month: number;
   month_name: string;
@@ -65,9 +63,9 @@ export interface MonthlyDetailReport {
   };
 }
 
-export type MonthlyReport = YearlyReport | MonthlyDetailReport;
+type MonthlyReport = YearlyReport | MonthlyDetailReport;
 
-export interface MonthlyReportParams {
+interface MonthlyReportParams {
   year: number;
   month?: number;
 }

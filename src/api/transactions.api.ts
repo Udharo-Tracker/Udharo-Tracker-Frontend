@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import type { Transaction, TransactionListParams } from "@/types/transaction";
 
 export const transactionsQueryKeys = {
   all: ["transactions"] as const,
@@ -16,7 +15,7 @@ export function getTransactions(params: TransactionListParams = {}) {
   if (params.customer_id) search.set("customer_id", params.customer_id);
   if (params.type) search.set("type", params.type);
   const query = search.toString();
-  return apiClient.get<Transaction[]>(
+  return apiClient.get<TransactionListItem[]>(
     `/ledger/transactions/${query ? `?${query}` : ""}`,
   );
 }

@@ -1,6 +1,6 @@
-export type Gender = "male" | "female" | "other";
+type Gender = "male" | "female" | "other";
 
-export interface UserProfile {
+interface UserProfile {
   id: string;
   email: string;
   first_name?: string;
@@ -13,11 +13,11 @@ export interface UserProfile {
   updated_at: string | null;
 }
 
-export type UserProfileUpdateInput = Partial<
+type UserProfileUpdateInput = Partial<
   Omit<UserProfile, "id" | "email" | "created_at" | "updated_at">
 >;
 
-export interface UserRegisterInput {
+interface UserRegisterInput {
   email: string;
   password: string;
   confirm_password: string;
@@ -32,21 +32,21 @@ export interface UserRegisterInput {
   shop_address?: string;
 }
 
-export interface UserForgotPasswordInput {
+interface UserForgotPasswordInput {
   email: string;
 }
 
-export interface UserPasswordResetInput {
+interface UserPasswordResetInput {
   password: string;
   confirm_password: string;
   token: string;
   uid: string;
 }
 
-export interface UserChangePasswordInput {
+interface UserChangePasswordInput {
   old_password: string;
   password: string;
   confirm_password: string;
 }
 
-export type UserChangePasswordPartialInput = Partial<UserChangePasswordInput>;
+type UserChangePasswordPartialInput = Partial<UserChangePasswordInput>;

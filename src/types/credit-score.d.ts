@@ -1,6 +1,6 @@
-export type CreditRiskLevel = "green" | "yellow" | "red";
+type CreditRiskLevel = "green" | "yellow" | "red";
 
-export interface CreditScore {
+interface CreditScore {
   id: string;
   customer: string;
   calculated_at: string;

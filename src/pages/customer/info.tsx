@@ -26,9 +26,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useCustomerStatement } from "@/api/statement.api";
 import { useCustomerTransactions } from "@/api/transactions.api";
 import {
+  useCustomer,
   useCustomerCreditScore,
   useCustomerCreditScoreHistory,
   useDeleteCustomer,
@@ -46,20 +46,18 @@ import { Label } from "@/components/shared/Label";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 import { formatDate, formatDateOnly } from "@/utils/date";
-import type { Transaction } from "@/types/transaction";
-import type { ReminderLog } from "@/types/reminder";
-
-interface LedgerRow extends Transaction {
-  balance: number;
-}
 
 export function CustomerDetail() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message, modal } = App.useApp();
-  const { openEditCustomer, openCreatePayment, openCreateUdharo } =
-    useEntityModals();
-  const statement = useCustomerStatement(id);
+  const {
+    openEditCustomer,
+    openCreatePayment,
+    openCreateUdharo,
+    openTransactionDetail,
+  } = useEntityModals();
+  const customer = useCustomer(id);
   const customerTransactions = useCustomerTransactions(id);
   const creditScore = useCustomerCreditScore(id);
   const creditScoreHistory = useCustomerCreditScoreHistory(id);
@@ -92,7 +90,7 @@ export function CustomerDetail() {
     creditScore.error instanceof ApiError &&
     creditScore.error.status === 404;
 
-  if (statement.isLoading) {
+  if (customer.isLoading) {
     return (
       <div className="space-y-6">
         <Skeleton active paragraph={{ rows: 2 }} />
@@ -101,7 +99,7 @@ export function CustomerDetail() {
     );
   }
 
-  if (statement.isError || !statement.data) {
+  if (customer.isError || !customer.data) {
     return (
       <div className="space-y-6">
         <Link
@@ -115,8 +113,8 @@ export function CustomerDetail() {
           showIcon
           title="Couldn't load this customer"
           description={
-            statement.error instanceof Error
-              ? statement.error.message
+            customer.error instanceof Error
+              ? customer.error.message
               : "Unknown error"
           }
         />
@@ -124,28 +122,27 @@ export function CustomerDetail() {
     );
   }
 
-  const { customer, summary } = statement.data;
+  const customerData = customer.data;
 
-  // The ledger transactions endpoint doesn't return a running balance, so we
-  // derive one client-side: opening + udharo entries add to what the
-  // customer owes, payments reduce it.
-  const ledgerRows: LedgerRow[] = (() => {
-    const chronological = [...(customerTransactions.data ?? [])].sort(
-      (a, b) =>
-        new Date(a.transaction_date).getTime() -
-        new Date(b.transaction_date).getTime(),
-    );
-    const withBalance = chronological.reduce<LedgerRow[]>((rows, t) => {
-      const amount = Number(t.amount);
-      const previousBalance = rows.length ? rows[rows.length - 1].balance : 0;
-      const balance =
-        previousBalance + (t.type === "payment" ? -amount : amount);
-      return [...rows, { ...t, balance }];
-    }, []);
-    return withBalance.reverse();
-  })();
+  // The list endpoint already returns running debit/credit columns and
+  // cumulative closing balances computed server-side (see TransactionList
+  // in the API schema) — just order newest-first for display.
+  const ledgerRows: TransactionListItem[] = [
+    ...(customerTransactions.data ?? []),
+  ].sort(
+    (a, b) =>
+      new Date(b.transaction_date).getTime() -
+      new Date(a.transaction_date).getTime(),
+  );
 
-  const columns: TableColumnsType<LedgerRow> = [
+  const summary = {
+    total_udharo: Number(customerData.ledger_summary.total_udharo) || 0,
+    total_paid: Number(customerData.ledger_summary.total_paid) || 0,
+    outstanding_balance:
+      Number(customerData.ledger_summary.outstanding_balance) || 0,
+  };
+
+  const columns: TableColumnsType<TransactionListItem> = [
     {
       title: "Txn #",
       dataIndex: "txn_number",
@@ -166,55 +163,56 @@ export function CustomerDetail() {
       title: "Detail",
       key: "detail",
       render: (_, t) => (
-        <div>
-          <span className="inline-flex items-center gap-2">
-            <span
-              className={`size-1.5 rounded-full ${
-                t.type === "udharo"
-                  ? "bg-warning"
-                  : t.type === "payment"
-                    ? "bg-success"
-                    : "bg-muted-foreground"
-              }`}
-            />
-            {t.title}
-          </span>
-          {t.remarks && (
-            <div className="text-xs text-muted-foreground mt-0.5 ml-3.5">
-              {t.remarks}
-            </div>
-          )}
-        </div>
+        <span className="inline-flex items-center gap-2">
+          <span
+            className={`size-1.5 rounded-full ${
+              t.type === "udharo"
+                ? "bg-warning"
+                : t.type === "payment"
+                  ? "bg-success"
+                  : "bg-muted-foreground"
+            }`}
+          />
+          {t.title}
+        </span>
       ),
     },
     {
       title: "Debit",
-      dataIndex: "amount",
+      dataIndex: "transaction_debit",
       key: "debit",
       align: "right",
-      render: (amount: string, t) =>
-        t.type === "udharo" || t.type === "opening" ? npr(amount) : "—",
+      render: (debit: string) => (Number(debit) > 0 ? npr(debit) : "—"),
     },
     {
       title: "Credit",
-      dataIndex: "amount",
+      dataIndex: "transaction_credit",
       key: "credit",
       align: "right",
-      render: (amount: string, t) =>
-        t.type === "payment" ? (
-          <span className="text-success">{npr(amount)}</span>
+      render: (credit: string) =>
+        Number(credit) > 0 ? (
+          <span className="text-success">{npr(credit)}</span>
         ) : (
           "—"
         ),
     },
     {
       title: "Balance",
-      dataIndex: "balance",
       key: "balance",
       align: "right",
-      render: (balance: number) => (
-        <span className="font-semibold">{npr(balance)}</span>
-      ),
+      render: (_, t) => {
+        const debit = Number(t.closing_balance_debit) || 0;
+        const credit = Number(t.closing_balance_credit) || 0;
+        const net = debit - credit;
+        return (
+          <span className="font-semibold">
+            {npr(Math.abs(net))}
+            {net < 0 && (
+              <span className="ml-1 text-xs font-normal text-success">Cr</span>
+            )}
+          </span>
+        );
+      },
     },
   ];
 
@@ -264,7 +262,7 @@ export function CustomerDetail() {
     message.success(`${label} copied`);
   };
 
-  const creditLimit = Number(customer.credit_limit) || 0;
+  const creditLimit = Number(customerData.credit_limit) || 0;
   const usedPct =
     creditLimit > 0
       ? Math.min(
@@ -311,7 +309,7 @@ export function CustomerDetail() {
         <div className="rounded-lg bg-muted p-4">
           <div className="text-xs text-muted-foreground">Credit Term</div>
           <div className="font-semibold mt-1">
-            {customer.credit_term_days} Days
+            {customerData.credit_term_days} Days
           </div>
         </div>
       </div>
@@ -328,7 +326,9 @@ export function CustomerDetail() {
           icon={<Copy className="size-3.5" />}
           onClick={() =>
             copyToClipboard(
-              [customer.name, customer.phone].filter(Boolean).join(" · "),
+              [customerData.name, customerData.phone]
+                .filter(Boolean)
+                .join(" · "),
               "Customer details",
             )
           }
@@ -337,17 +337,17 @@ export function CustomerDetail() {
       <dl className="space-y-4 text-sm">
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Full Name</dt>
-          <dd className="font-medium text-right">{customer.name}</dd>
+          <dd className="font-medium text-right">{customerData.name}</dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Phone Number</dt>
           <dd className="font-medium text-right inline-flex items-center gap-1.5">
-            {customer.phone || "—"}
-            {customer.phone && (
+            {customerData.phone || "—"}
+            {customerData.phone && (
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboard(customer.phone as string, "Phone number")
+                  copyToClipboard(customerData.phone as string, "Phone number")
                 }
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -359,11 +359,11 @@ export function CustomerDetail() {
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Email</dt>
           <dd className="font-medium text-right inline-flex items-center gap-1.5 min-w-0">
-            <span className="truncate">{customer.email || "—"}</span>
-            {customer.email && (
+            <span className="truncate">{customerData.email || "—"}</span>
+            {customerData.email && (
               <button
                 type="button"
-                onClick={() => copyToClipboard(customer.email, "Email")}
+                onClick={() => copyToClipboard(customerData.email, "Email")}
                 className="text-muted-foreground hover:text-foreground shrink-0"
               >
                 <Copy className="size-3.5" />
@@ -373,18 +373,20 @@ export function CustomerDetail() {
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Address</dt>
-          <dd className="font-medium text-right">{customer.address || "—"}</dd>
+          <dd className="font-medium text-right">
+            {customerData.address || "—"}
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Loyalty Discount</dt>
           <dd className="font-medium text-right">
-            {customer.loyalty_discount}%
+            {customerData.loyalty_discount}%
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Joined On</dt>
           <dd className="font-medium text-right">
-            {formatDateOnly(customer.created_at)}
+            {formatDateOnly(customerData.created_at)}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3">
@@ -557,13 +559,17 @@ export function CustomerDetail() {
       )}
       <Panel padding="none">
         {" "}
-        <Table<LedgerRow>
+        <Table<TransactionListItem>
           columns={columns}
           dataSource={ledgerRows}
           loading={customerTransactions.isLoading}
           rowKey="id"
           size="middle"
           scroll={{ x: true }}
+          onRow={(record) => ({
+            onClick: () => openTransactionDetail(record.id),
+            className: "cursor-pointer",
+          })}
           pagination={{ pageSize: 10, hideOnSinglePage: true }}
           locale={{
             emptyText: (
@@ -682,15 +688,15 @@ export function CustomerDetail() {
             <Button icon={<ChevronLeft className="size-6 text-gray-100" />} />
           </Link>{" "}
           <div>
-            <h1 className="text-xl font-semibold">{customer.name}</h1>
+            <h1 className="text-xl font-semibold">{customerData.name}</h1>
             <div className="flex items-center flex-wrap gap-3 mt-1.5">
               <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                 <CalendarDays className="size-3.5" /> Joined{" "}
-                {formatDateOnly(customer.created_at)}
+                {formatDateOnly(customerData.created_at)}
               </span>
-              {customer.phone && (
+              {customerData.phone && (
                 <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Phone className="size-3.5" /> {customer.phone}
+                  <Phone className="size-3.5" /> {customerData.phone}
                 </span>
               )}
               {creditScore.data && (

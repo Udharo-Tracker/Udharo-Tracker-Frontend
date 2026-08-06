@@ -1,4 +1,4 @@
-export interface ReminderLog {
+interface ReminderLog {
   id: string;
   customer: string;
   sent_at: string;
@@ -6,6 +6,6 @@ export interface ReminderLog {
   outstanding_balance: string;
 }
 
-export interface CreateReminderInput {
+interface CreateReminderInput {
   note?: string;
 }

@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import type { UserProfile, UserProfileUpdateInput } from "@/types/user";
 
 export const profileQueryKeys = {
   detail: ["profile"] as const,
@@ -29,7 +28,8 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateProfile,
-    onSuccess: (data) => queryClient.setQueryData(profileQueryKeys.detail, data),
+    onSuccess: (data) =>
+      queryClient.setQueryData(profileQueryKeys.detail, data),
   });
 }
 
@@ -37,6 +37,7 @@ export function usePatchProfile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: patchProfile,
-    onSuccess: (data) => queryClient.setQueryData(profileQueryKeys.detail, data),
+    onSuccess: (data) =>
+      queryClient.setQueryData(profileQueryKeys.detail, data),
   });
 }

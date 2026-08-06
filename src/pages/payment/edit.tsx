@@ -3,7 +3,6 @@ import { Check } from "lucide-react";
 import { Textarea } from "@/components/shared/Textarea";
 import { usePayment, useUpdatePayment } from "@/api/payments.api";
 import { npr } from "@/lib/currency";
-import type { Payment } from "@/types/payment";
 
 interface Props {
   open: boolean;

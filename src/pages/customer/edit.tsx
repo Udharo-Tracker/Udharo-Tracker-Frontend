@@ -12,7 +12,6 @@ import {
 import { Check } from "lucide-react";
 import { Textarea } from "@/components/shared/Textarea";
 import { useCustomer, useUpdateCustomer } from "@/api/customers.api";
-import type { Customer } from "@/types/customer";
 
 interface Props {
   open: boolean;
@@ -25,6 +24,7 @@ export function EditCustomerModal({ open, id, onClose }: Props) {
 
   return (
     <Modal
+      width={620}
       open={open}
       onCancel={onClose}
       footer={null}
@@ -63,7 +63,7 @@ function EditCustomerForm({
   onClose,
 }: {
   id: string;
-  initial: Customer;
+  initial: CustomerDetail;
   onClose: () => void;
 }) {
   const { message } = App.useApp();
@@ -106,97 +106,90 @@ function EditCustomerForm({
         creditLimit: Number(initial.credit_limit) || 0,
         creditTermDays: initial.credit_term_days,
         loyaltyDiscount: Number(initial.loyalty_discount) || 0,
-        openingBalance: Number(initial.opening_balance) || 0,
+        openingBalance: Number(initial.ledger_summary.opening_balance) || 0,
       }}
     >
-      <Form.Item
-        label="Name"
-        name="name"
-        rules={[{ required: true, message: "Please enter customer name" }]}
-      >
-        <Input className="h-11 rounded-xl" autoFocus />
-      </Form.Item>
-      <Form.Item
-        label="Phone"
-        name="phone"
-        rules={[{ required: true, message: "Please enter phone number" }]}
-      >
-        <Input className="h-11 rounded-xl" />
-      </Form.Item>
-      <Form.Item label="Email" name="email">
-        <Input className="h-11 rounded-xl" />
-      </Form.Item>
-      <Form.Item label="Address" name="address">
-        <Textarea />
-      </Form.Item>
+      <div className="w-full flex flex-col gap-4">
+        <Form.Item
+          label="Name"
+          name="name"
+          rules={[{ required: true, message: "Please enter customer name" }]}
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Input placeholder="e.g. Ram Bahadur" autoFocus />
+        </Form.Item>
+        <Form.Item
+          label="Phone"
+          name="phone"
+          rules={[{ required: true, message: "Please enter phone number" }]}
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Input placeholder="98xxxxxxxx" />
+        </Form.Item>
+        <Form.Item
+          label="Email"
+          name="email"
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Input placeholder="customer@example.com" />
+        </Form.Item>
+        <Form.Item
+          label="Address"
+          name="address"
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Textarea placeholder="e.g. Baneshwor, Kathmandu" />
+        </Form.Item>
+      </div>
+      <Divider className="my-4!">Credit settings</Divider>
 
-      <Divider className="my-2!">Credit settings</Divider>
-
-      <div className="grid grid-cols-2 gap-4">
+      <div className="w-full grid grid-cols-2 pb-5 gap-4">
         <Form.Item
           label="Credit limit"
           tooltip="Maximum outstanding amount this customer can owe before new udharo entries are blocked."
-          className="mb-0!"
+          style={{ width: "100%", margin: 0, padding: 0 }}
         >
-          <Space.Compact className="w-full">
+          <Space.Compact style={{ width: "100%" }}>
             <Form.Item name="creditLimit" noStyle>
-              <InputNumber
-                min={0}
-                className="h-11 w-full rounded-l-xl [&_input]:h-11!"
-              />
+              <InputNumber min={0} style={{ width: "100%" }} />
             </Form.Item>
-            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
-              Rs
-            </Button>
+            <Button disabled>Rs</Button>
           </Space.Compact>
         </Form.Item>
         <Form.Item
           label="Credit term"
           tooltip="Number of days the customer has to clear dues before the balance is considered overdue."
-          className="mb-0!"
+          style={{ width: "100%", margin: 0, padding: 0 }}
         >
-          <Space.Compact className="w-full">
+          <Space.Compact style={{ width: "100%" }}>
             <Form.Item name="creditTermDays" noStyle>
-              <InputNumber
-                min={0}
-                className="h-11 w-full rounded-l-xl [&_input]:h-11!"
-              />
+              <InputNumber min={0} style={{ width: "100%" }} />
             </Form.Item>
-            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
-              Days
-            </Button>
+            <Button disabled>Days</Button>
           </Space.Compact>
         </Form.Item>
         <Form.Item
           label="Loyalty discount"
           tooltip="Discount percentage automatically applied to this customer's purchases."
-          className="mb-0!"
+          style={{ width: "100%", margin: 0, padding: 0 }}
         >
-          <Space.Compact className="w-full">
+          <Space.Compact style={{ width: "100%" }}>
             <Form.Item name="loyaltyDiscount" noStyle>
-              <InputNumber
-                min={0}
-                max={100}
-                className="h-11 w-full rounded-l-xl [&_input]:h-11!"
-              />
+              <InputNumber min={0} max={100} style={{ width: "100%" }} />
             </Form.Item>
-            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
-              %
-            </Button>
+            <Button disabled>%</Button>
           </Space.Compact>
         </Form.Item>
         <Form.Item
           label="Opening balance"
           tooltip="Any existing due amount to carry over when this customer is added."
-          className="mb-0!"
+          style={{ width: "100%", margin: 0, padding: 0 }}
         >
-          <Space.Compact className="w-full">
+          <Space.Compact style={{ width: "100%" }}>
             <Form.Item name="openingBalance" noStyle>
-              <InputNumber className="h-11 w-full rounded-l-xl [&_input]:h-11!" />
+              <InputNumber style={{ width: "100%" }} />
             </Form.Item>
-            <Button disabled className="h-11! rounded-r-xl! rounded-l-none!">
-              Rs
-            </Button>
+            <Button disabled>Rs</Button>
           </Space.Compact>
         </Form.Item>
       </div>
