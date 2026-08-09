@@ -7,6 +7,7 @@ import { EditPaymentModal } from "@/pages/payment/edit";
 import { CreateUdharoModal } from "@/pages/udharo/create";
 import { EditUdharoModal } from "@/pages/udharo/edit";
 import { TransactionDetailDrawer } from "@/pages/transaction/detail";
+import { ReminderDetailDrawer } from "@/pages/customer/reminder-detail";
 
 type ModalState =
   | { type: "none" }
@@ -16,7 +17,8 @@ type ModalState =
   | { type: "edit-payment"; id: string }
   | { type: "create-udharo"; customerId?: string }
   | { type: "edit-udharo"; id: string }
-  | { type: "view-transaction"; id: string };
+  | { type: "view-transaction"; id: string }
+  | { type: "view-reminder"; reminder: ReminderLog };
 
 export function EntityModalsProvider({ children }: { children: ReactNode }) {
   const [modal, setModal] = useState<ModalState>({ type: "none" });
@@ -34,6 +36,8 @@ export function EntityModalsProvider({ children }: { children: ReactNode }) {
       openEditUdharo: (id: string) => setModal({ type: "edit-udharo", id }),
       openTransactionDetail: (id: string) =>
         setModal({ type: "view-transaction", id }),
+      openReminderDetail: (reminder: ReminderLog) =>
+        setModal({ type: "view-reminder", reminder }),
     }),
     [],
   );
@@ -77,6 +81,11 @@ export function EntityModalsProvider({ children }: { children: ReactNode }) {
       <TransactionDetailDrawer
         open={modal.type === "view-transaction"}
         id={modal.type === "view-transaction" ? modal.id : ""}
+        onClose={close}
+      />
+      <ReminderDetailDrawer
+        open={modal.type === "view-reminder"}
+        reminder={modal.type === "view-reminder" ? modal.reminder : null}
         onClose={close}
       />
     </EntityModalsContext.Provider>
