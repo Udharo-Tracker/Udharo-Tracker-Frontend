@@ -8,6 +8,7 @@ export interface EntityModalsContextValue {
   openCreateUdharo: (customerId?: string) => void;
   openEditUdharo: (id: string) => void;
   openTransactionDetail: (id: string) => void;
+  openReminderDetail: (reminder: ReminderLog) => void;
 }
 
 export const EntityModalsContext =
