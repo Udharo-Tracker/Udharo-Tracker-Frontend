@@ -56,6 +56,7 @@ export function CustomerDetail() {
     openCreatePayment,
     openCreateUdharo,
     openTransactionDetail,
+    openReminderDetail,
   } = useEntityModals();
   const customer = useCustomer(id);
   const customerTransactions = useCustomerTransactions(id);
@@ -622,6 +623,10 @@ export function CustomerDetail() {
               dataSource={reminders.data}
               rowKey="id"
               size="middle"
+              onRow={(record) => ({
+                onClick: () => openReminderDetail(record),
+                className: "cursor-pointer",
+              })}
               pagination={{ pageSize: 10, hideOnSinglePage: true }}
               locale={{
                 emptyText: (
