@@ -1,8 +1,19 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { App, Card, Skeleton, Alert } from "antd";
-import { ArrowLeft, PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { App, Skeleton, Alert, Button } from "antd";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ChevronLeft,
+  Pencil,
+  Phone,
+  Receipt,
+  Trash2,
+} from "lucide-react";
 import { useUdharoEntry, useDeleteUdharoEntry } from "@/api/udharo.api";
 import { useEntityModals } from "@/context/entity-modals-context";
+import { Panel } from "@/components/shared/Panel";
+import { DetailRow } from "@/components/shared/DetailRow";
+import { StatusTag } from "@/components/shared/StatusTag";
 import { npr } from "@/lib/currency";
 import { formatDate } from "@/utils/date";
 
@@ -17,7 +28,8 @@ export function UdharoDetail() {
   const confirmDelete = () => {
     modal.confirm({
       title: "Delete this udharo entry?",
-      content: "This cannot be undone and will affect the customer's outstanding balance.",
+      content:
+        "This cannot be undone and will affect the customer's outstanding balance.",
       okText: "Delete",
       okType: "danger",
       onOk: () =>
@@ -33,24 +45,29 @@ export function UdharoDetail() {
 
   if (entry.isLoading) {
     return (
-      <div className="max-w-2xl space-y-6">
+      <div className="space-y-6">
         <Skeleton active paragraph={{ rows: 2 }} />
-        <Skeleton active paragraph={{ rows: 6 }} />
+        <Skeleton active paragraph={{ rows: 8 }} />
       </div>
     );
   }
 
   if (entry.isError || !entry.data) {
     return (
-      <div className="max-w-2xl space-y-6">
-        <Link to="/udharo" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+      <div className="space-y-6">
+        <Link
+          to="/udharo"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="size-4" /> Back to udharo entries
         </Link>
         <Alert
           type="error"
           showIcon
           title="Couldn't load this udharo entry"
-          description={entry.error instanceof Error ? entry.error.message : "Unknown error"}
+          description={
+            entry.error instanceof Error ? entry.error.message : "Unknown error"
+          }
         />
       </div>
     );
@@ -59,89 +76,119 @@ export function UdharoDetail() {
   const e = entry.data;
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <Link to="/udharo" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back to udharo entries
-        </Link>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
+        <div className="flex items-start gap-4">
+          <Link to="/udharo">
+            <Button icon={<ChevronLeft className="size-5" />} />
+          </Link>
+          <div>
+            <Link
+              to={`/customers/${e.customer.id}`}
+              className="hover:underline"
+            >
+              <h1 className="text-xl text-foreground! font-semibold">Udharo Entries - {e.customer.name}</h1>
+            </Link>
+            <div className="flex items-center flex-wrap gap-3 mt-1.5">
+              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Receipt className="size-3.5" /> Udharo entry
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CalendarDays className="size-3.5" /> {formatDate(e.created_at)}
+              </span>
+              {e.customer.phone && (
+                <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Phone className="size-3.5" /> {e.customer.phone}
+                </span>
+              )}
+              <StatusTag tone={e.is_settled ? "success" : "warning"}>
+                {e.is_settled ? "Settled" : "Pending"}
+              </StatusTag>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button
+            icon={<Pencil className="size-4" />}
             onClick={() => openEditUdharo(id)}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground font-medium hover:text-foreground"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground font-medium hover:text-foreground hover:bg-muted"
           >
-            <Pencil className="size-4" /> Edit
-          </button>
-          <button
-            type="button"
+            Edit
+          </Button>
+          <Button
+            icon={<Trash2 className="size-4" />}
+            danger
             onClick={confirmDelete}
-            className="inline-flex items-center gap-2 text-sm text-danger font-medium hover:underline"
-          >
-            <Trash2 className="size-4" /> Delete
-          </button>
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-danger font-medium hover:bg-danger-soft"
+          />
         </div>
       </div>
 
-      <Card className="p-6 md:p-8 rounded-3xl border-none shadow-sm bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="size-14 rounded-2xl bg-primary-foreground/15 grid place-items-center">
-              <PlusCircle className="size-6" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Panel padding="none">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="font-semibold text-sm">Items</h2>
+              <span className="text-xs text-muted-foreground">
+                {e.items.length} item{e.items.length !== 1 ? "s" : ""}
+              </span>
             </div>
-            <div>
-              <div className="text-xs uppercase tracking-wider opacity-80">Udharo entry</div>
-              <div className="text-4xl font-bold mt-1">{npr(e.total_amount)}</div>
+            <ul className="divide-y divide-border">
+              {e.items.map((it) => (
+                <li
+                  key={it.id}
+                  className="px-5 py-3.5 flex items-center justify-between text-sm"
+                >
+                  <span>{it.item_name}</span>
+                  <span className="font-semibold">{npr(it.amount)}</span>
+                </li>
+              ))}
+              {e.items.length === 0 && (
+                <li className="p-8 text-center text-muted-foreground text-sm">
+                  No items listed.
+                </li>
+              )}
+            </ul>
+            {e.items.length > 0 && (
+              <div className="px-5 py-3.5 flex items-center justify-between text-sm bg-muted/50">
+                <span className="font-semibold">Total</span>
+                <span className="font-bold">{npr(e.total_amount)}</span>
+              </div>
+            )}
+          </Panel>
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-3xl bg-linear-to-br from-primary to-primary/80 text-primary-foreground p-5">
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-2xl bg-white/15 grid place-items-center">
+                <Receipt className="size-5" />
+              </div>
+              <div>
+                <div className="text-xs opacity-80">Total udharo</div>
+                <div className="text-2xl font-bold mt-0.5">
+                  {npr(e.total_amount)}
+                </div>
+              </div>
             </div>
           </div>
-          <span
-            className={`text-xs px-3 py-1.5 rounded-full font-medium ${
-              e.is_settled ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground"
-            }`}
-          >
-            {e.is_settled ? "Settled" : "Pending"}
-          </span>
-        </div>
-      </Card>
 
-      <Card className="rounded-3xl border-none shadow-sm divide-y">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Customer</span>
-          <Link to={`/customers/${e.customer.id}`} className="font-medium text-primary hover:underline">
-            {e.customer.name}
-          </Link>
+          <Panel>
+            <h2 className="font-semibold text-sm mb-4">Details</h2>
+            <dl className="space-y-3 text-sm">
+              <DetailRow label="Date" value={formatDate(e.created_at)} />
+              {e.settled_at && (
+                <DetailRow
+                  label="Settled on"
+                  value={formatDate(e.settled_at)}
+                />
+              )}
+              <DetailRow label="Note" value={e.note || "—"} />
+            </dl>
+          </Panel>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Date</span>
-          <span className="font-medium">{formatDate(e.created_at)}</span>
-        </div>
-        {e.settled_at && (
-          <div className="px-6 py-4 flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Settled on</span>
-            <span className="font-medium">{formatDate(e.settled_at)}</span>
-          </div>
-        )}
-        <div className="px-6 py-4 flex items-center justify-between gap-4">
-          <span className="text-sm text-muted-foreground shrink-0">Note</span>
-          <span className="font-medium text-right">{e.note || "—"}</span>
-        </div>
-      </Card>
-
-      <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b">
-          <h2 className="font-semibold">Items</h2>
-        </div>
-        <ul className="divide-y">
-          {e.items.map((it) => (
-            <li key={it.id} className="px-6 py-3 flex items-center justify-between text-sm">
-              <span>{it.item_name}</span>
-              <span className="font-semibold">{npr(it.amount)}</span>
-            </li>
-          ))}
-          {e.items.length === 0 && (
-            <li className="p-8 text-center text-muted-foreground text-sm">No items listed.</li>
-          )}
-        </ul>
-      </Card>
+      </div>
     </div>
   );
 }
