@@ -1,11 +1,13 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Drawer, Skeleton, Alert, Tag, Button } from "antd";
+import { Drawer, Skeleton, Alert, Button } from "antd";
 import { ArrowRight, Printer, Receipt, Wallet, Scale } from "lucide-react";
 import { useTransaction } from "@/api/transactions.api";
 import { useUdharoEntry } from "@/api/udharo.api";
 import { Panel } from "@/components/shared/Panel";
+import { DetailRow } from "@/components/shared/DetailRow";
+import { StatusTag } from "@/components/shared/StatusTag";
 import { npr } from "@/lib/currency";
+import { PAYMENT_MODE_LABELS } from "@/lib/payment";
 import { formatDate } from "@/utils/date";
 
 interface Props {
@@ -74,14 +76,6 @@ const TYPE_META: Record<
   },
 };
 
-const PAYMENT_MODE_LABELS: Record<string, string> = {
-  cash: "Cash",
-  card: "Card",
-  fonepay: "Fonepay",
-  nepal_pay: "Nepal Pay",
-  bank_transfer: "Bank Transfer",
-};
-
 // `type` comes back from the API as a display label (e.g. "Payment"), not
 // the lowercase enum the rest of the app filters/keys by.
 function normalizeType(type: string): TransactionType | null {
@@ -121,7 +115,11 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {t.status && <Tag className="capitalize">{t.status}</Tag>}
+          {t.status && (
+            <StatusTag tone="muted" className="capitalize">
+              {t.status}
+            </StatusTag>
+          )}
           <Button
             size="small"
             icon={<Printer className="size-3.5" />}
@@ -135,7 +133,7 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Panel>
           <dl className="space-y-3 text-sm">
-            <Row
+            <DetailRow
               label="From"
               value={
                 <Link
@@ -146,10 +144,10 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
                 </Link>
               }
             />
-            <Row label="Txn number" value={t.txn_number} />
-            <Row label="Date" value={formatDate(t.transaction_date)} />
+            <DetailRow label="Txn number" value={t.txn_number} />
+            <DetailRow label="Date" value={formatDate(t.transaction_date)} />
             {type === "payment" && payments[0]?.payment_mode && (
-              <Row
+              <DetailRow
                 label="Payment mode"
                 value={
                   PAYMENT_MODE_LABELS[payments[0].payment_mode] ??
@@ -158,21 +156,24 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
               />
             )}
             {type === "payment" && payments[0]?.reference && (
-              <Row label="Reference no" value={payments[0].reference} />
+              <DetailRow label="Reference no" value={payments[0].reference} />
             )}
-            <Row label="Remarks" value={t.remarks || "—"} />
+            <DetailRow label="Remarks" value={t.remarks || "—"} />
           </dl>
         </Panel>
 
         <Panel>
           <h3 className="font-semibold text-sm mb-3">Basic details</h3>
           <dl className="space-y-3 text-sm">
-            <Row
+            <DetailRow
               label="Status"
               value={<span className="capitalize">{t.status || "—"}</span>}
             />
-            <Row label="Recorded by" value={t.recorded_by?.full_name || "—"} />
-            <Row label="Balance after" value={npr(t.balance_after)} />
+            <DetailRow
+              label="Recorded by"
+              value={t.recorded_by?.full_name || "—"}
+            />
+            <DetailRow label="Balance after" value={npr(t.balance_after)} />
           </dl>
         </Panel>
       </div>
@@ -186,9 +187,9 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
             {payments.map((p, i) => (
               <div key={i} className="p-5">
                 <dl className="space-y-3 text-sm">
-                  <Row label="Amount" value={npr(p.amount)} />
+                  <DetailRow label="Amount" value={npr(p.amount)} />
                   {p.payment_mode && (
-                    <Row
+                    <DetailRow
                       label="Payment mode"
                       value={
                         PAYMENT_MODE_LABELS[p.payment_mode] ?? p.payment_mode
@@ -196,13 +197,16 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
                     />
                   )}
                   {p.reference && (
-                    <Row label="Reference no" value={p.reference} />
+                    <DetailRow label="Reference no" value={p.reference} />
                   )}
                   {p.write_off_amount > 0 && (
-                    <Row label="Written off" value={npr(p.write_off_amount)} />
+                    <DetailRow
+                      label="Written off"
+                      value={npr(p.write_off_amount)}
+                    />
                   )}
                   {p.allocated_from && (
-                    <Row
+                    <DetailRow
                       label="Allocated from"
                       value={p.allocated_from.txn_number}
                     />
@@ -239,9 +243,11 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
             <h3 className="font-semibold text-sm">Items</h3>
             <div className="flex items-center gap-3">
               {udharoEntry.data && (
-                <Tag color={udharoEntry.data.is_settled ? "success" : "gold"}>
+                <StatusTag
+                  tone={udharoEntry.data.is_settled ? "success" : "warning"}
+                >
                   {udharoEntry.data.is_settled ? "Settled" : "Pending"}
-                </Tag>
+                </StatusTag>
               )}
               {t.udharo_entry && (
                 <Link
@@ -318,15 +324,6 @@ function TransactionVoucher({ transaction: t }: { transaction: Transaction }) {
           </ul>
         </Panel>
       )}
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium text-right">{value}</dd>
     </div>
   );
 }
