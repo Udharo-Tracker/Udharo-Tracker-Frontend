@@ -4,6 +4,7 @@ import {
   Users,
   ClipboardList,
   Wallet,
+  Receipt,
   BarChart3,
   Settings,
   LogOut,
@@ -24,6 +25,7 @@ const menuNav = [
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/udharo", label: "Udharo", icon: ClipboardList },
   { to: "/payments", label: "Payments", icon: Wallet },
+  { to: "/transactions", label: "Transactions", icon: Receipt },
   { to: "/reports", label: "Monthly Report", icon: BarChart3 },
 ];
 
