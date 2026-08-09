@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { App, Alert, Table, Dropdown, Tag, Input, Button } from "antd";
+import { App, Alert, Table, Dropdown, Input, Button } from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
 import {
   Eye,
@@ -17,6 +17,7 @@ import { formatDate } from "@/utils/date";
 import { CustomerAvatar } from "@/components/shared/CustomerAvatar";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Panel } from "@/components/shared/Panel";
+import { StatusTag } from "@/components/shared/StatusTag";
 
 export function UdharoList() {
   const navigate = useNavigate();
@@ -85,16 +86,11 @@ export function UdharoList() {
         { text: "Pending", value: false },
       ],
       onFilter: (value, record) => record.is_settled === value,
-      render: (isSettled: boolean) =>
-        isSettled ? (
-          <Tag color="success" variant="outlined">
-            Settled
-          </Tag>
-        ) : (
-          <Tag color="warning" variant="outlined">
-            Pending
-          </Tag>
-        ),
+      render: (isSettled: boolean) => (
+        <StatusTag tone={isSettled ? "success" : "warning"}>
+          {isSettled ? "Settled" : "Pending"}
+        </StatusTag>
+      ),
     },
     {
       title: "Total",
@@ -165,7 +161,7 @@ export function UdharoList() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Udharo entries"
+        title="Udharo Entries"
         subtitle={`${entries.length} total · ${entries.filter((e) => !e.is_settled).length} pending`}
         actions={
           <>
