@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { App, Input, Alert, Table, Dropdown, Button } from "antd";
+import { App, Input, Alert, Table, Dropdown, Button, Checkbox } from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
 import {
   Search,
@@ -16,6 +16,7 @@ import {
 import { useDeleteCustomer } from "@/api/customers.api";
 import { useLedgerSummary } from "@/api/ledger.api";
 import { CustomerAvatar } from "@/components/shared/CustomerAvatar";
+import { FilterPopover } from "@/components/shared/FilterPopover";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Panel } from "@/components/shared/Panel";
 import { RiskBadge } from "@/components/shared/RiskBadge";
@@ -23,6 +24,12 @@ import { StatCard, StatCardSkeleton } from "@/components/shared/StatCard";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 import { formatDateOnly } from "@/utils/date";
+
+const RISK_OPTIONS: { value: CreditRiskLevel; label: string }[] = [
+  { value: "green", label: "Low risk" },
+  { value: "yellow", label: "Medium risk" },
+  { value: "red", label: "High risk" },
+];
 
 export function CustomersList() {
   const { data, isLoading, isError, error } = useLedgerSummary();
@@ -33,6 +40,8 @@ export function CustomersList() {
   const [q, setQ] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchExpanded = searchFocused || q.length > 0;
+  const [riskFilter, setRiskFilter] = useState<CreditRiskLevel[]>([]);
+  const hasActiveFilters = riskFilter.length > 0;
 
   const confirmDelete = (id: string, name: string) => {
     modal.confirm({
@@ -57,11 +66,14 @@ export function CustomersList() {
 
   const filtered = useMemo(
     () =>
-      customers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q),
-      ),
-    [customers, q],
+      customers.filter((c) => {
+        const matchesQuery =
+          c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q);
+        const matchesRisk =
+          riskFilter.length === 0 || riskFilter.includes(c.risk);
+        return matchesQuery && matchesRisk;
+      }),
+    [customers, q, riskFilter],
   );
 
   const columns: TableColumnsType<CustomerBalanceSummary> = [
@@ -193,6 +205,26 @@ export function CustomersList() {
                 />
               )}
             </div>
+            <FilterPopover
+              active={hasActiveFilters}
+              onClear={() => setRiskFilter([])}
+              title="Filter customers"
+            >
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Risk level</p>
+                <Checkbox.Group
+                  className="flex flex-col gap-2"
+                  value={riskFilter}
+                  onChange={(values) =>
+                    setRiskFilter(values as CreditRiskLevel[])
+                  }
+                  options={RISK_OPTIONS.map((o) => ({
+                    label: o.label,
+                    value: o.value,
+                  }))}
+                />
+              </div>
+            </FilterPopover>
             <Button
               type="primary"
               icon={<UserPlus className="size-4" />}
