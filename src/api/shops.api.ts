@@ -8,6 +8,25 @@ export const shopsQueryKeys = {
   detail: (id: string) => [...shopsQueryKeys.details(), id] as const,
 };
 
+// Shop writes go through FormData whenever a logo file is attached, since
+// the API expects multipart for file uploads; plain JSON otherwise.
+function toShopPayload(
+  input: ShopInput | ShopUpdateInput,
+): ShopInput | ShopUpdateInput | FormData {
+  if (!(input.logo instanceof File)) return input;
+
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) continue;
+    if (key === "logo") {
+      formData.append("logo", value as File);
+    } else {
+      formData.append(key, String(value));
+    }
+  }
+  return formData;
+}
+
 export function getShops() {
   return apiClient.get<Shop[]>("/shop/");
 }
@@ -17,15 +36,15 @@ export function getShop(id: string) {
 }
 
 export function createShop(input: ShopInput) {
-  return apiClient.post<Shop>("/shop/", input);
+  return apiClient.post<Shop>("/shop/", toShopPayload(input));
 }
 
 export function updateShop(id: string, input: ShopInput) {
-  return apiClient.put<Shop>(`/shop/${id}/`, input);
+  return apiClient.put<Shop>(`/shop/${id}/`, toShopPayload(input));
 }
 
 export function patchShop(id: string, input: ShopUpdateInput) {
-  return apiClient.patch<Shop>(`/shop/${id}/`, input);
+  return apiClient.patch<Shop>(`/shop/${id}/`, toShopPayload(input));
 }
 
 export function deleteShop(id: string) {

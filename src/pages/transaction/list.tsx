@@ -1,13 +1,18 @@
 import { useState } from "react";
-import { Alert, Empty, Input, Table, Tabs } from "antd";
+import { Alert, DatePicker, Empty, Input, Table, Tabs } from "antd";
 import type { TableColumnsType } from "antd";
+import type { Dayjs } from "dayjs";
 import { Search } from "lucide-react";
 import { useTransactions } from "@/api/transactions.api";
 import { useEntityModals } from "@/context/entity-modals-context";
+import { FilterPopover } from "@/components/shared/FilterPopover";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Panel } from "@/components/shared/Panel";
 import { npr } from "@/lib/currency";
 import { formatDate } from "@/utils/date";
+
+const { RangePicker } = DatePicker;
+type DateRange = [Dayjs | null, Dayjs | null] | null;
 
 const TABS: { key: string; label: string; type?: TransactionType }[] = [
   { key: "all", label: "All" },
@@ -22,6 +27,8 @@ export function TransactionsList() {
   const [q, setQ] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchExpanded = searchFocused || q.length > 0;
+  const [dateRange, setDateRange] = useState<DateRange>(null);
+  const hasActiveFilters = !!(dateRange && (dateRange[0] || dateRange[1]));
 
   const activeType = TABS.find((t) => t.key === tab)?.type;
   const transactions = useTransactions(activeType ? { type: activeType } : {});
@@ -34,11 +41,17 @@ export function TransactionsList() {
       new Date(b.transaction_date).getTime() -
       new Date(a.transaction_date).getTime(),
   );
-  const filtered = sorted.filter(
-    (t) =>
+  const filtered = sorted.filter((t) => {
+    const matchesQuery =
       t.title.toLowerCase().includes(q.toLowerCase()) ||
-      t.txn_number.toLowerCase().includes(q.toLowerCase()),
-  );
+      t.txn_number.toLowerCase().includes(q.toLowerCase());
+    const txnDate = new Date(t.transaction_date);
+    const [from, to] = dateRange ?? [null, null];
+    const matchesDate =
+      (!from || txnDate >= from.startOf("day").toDate()) &&
+      (!to || txnDate <= to.endOf("day").toDate());
+    return matchesQuery && matchesDate;
+  });
 
   const columns: TableColumnsType<TransactionListItem> = [
     {
@@ -121,37 +134,56 @@ export function TransactionsList() {
         title="Transactions"
         subtitle={`${rows.length} recorded`}
         actions={
-          <div
-            className={`relative h-8 shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${
-              searchExpanded ? "w-50" : "w-8"
-            }`}
-          >
-            {searchExpanded ? (
-              <Input
-                autoFocus
-                placeholder="Search by title or txn #…"
-                value={q}
-                prefix={
-                  <Search
-                    size={15}
-                    className="text-muted-foreground shrink-0"
-                  />
-                }
-                onChange={(e) => setQ(e.target.value)}
-                onBlur={() => setSearchFocused(false)}
-                className="h-8 w-50 border-none bg-card"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setSearchFocused(true)}
-                className="size-8 rounded-lg border border-border grid place-items-center text-muted-foreground hover:bg-muted"
-                aria-label="Search transactions"
-              >
-                <Search size={15} />
-              </button>
-            )}
-          </div>
+          <>
+            <div
+              className={`relative h-8 shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${
+                searchExpanded ? "w-50" : "w-8"
+              }`}
+            >
+              {searchExpanded ? (
+                <Input
+                  autoFocus
+                  placeholder="Search by title or txn #…"
+                  value={q}
+                  prefix={
+                    <Search
+                      size={15}
+                      className="text-muted-foreground shrink-0"
+                    />
+                  }
+                  onChange={(e) => setQ(e.target.value)}
+                  onBlur={() => setSearchFocused(false)}
+                  className="h-8 w-50 border-none bg-card"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSearchFocused(true)}
+                  className="size-8 rounded-lg border border-border grid place-items-center text-muted-foreground hover:bg-muted"
+                  aria-label="Search transactions"
+                >
+                  <Search size={15} />
+                </button>
+              )}
+            </div>
+            <FilterPopover
+              active={hasActiveFilters}
+              onClear={() => setDateRange(null)}
+              title="Filter transactions"
+            >
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Transaction date
+                </p>
+                <RangePicker
+                  className="w-full"
+                  value={dateRange}
+                  onChange={(range) => setDateRange(range)}
+                  allowEmpty={[true, true]}
+                />
+              </div>
+            </FilterPopover>
+          </>
         }
       />
 

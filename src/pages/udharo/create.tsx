@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { CustomerCombobox } from "@/components/shared/CustomerCombobox";
 import { Plus, X, Check } from "lucide-react";
@@ -52,7 +51,6 @@ function CreateUdharoForm({
   preset?: string;
   onClose: () => void;
 }) {
-  const navigate = useNavigate();
   const { message } = App.useApp();
   const [form] = Form.useForm<UdharoFormValues>();
   const createUdharoEntry = useCreateUdharoEntry();
@@ -90,7 +88,6 @@ function CreateUdharoForm({
             description: `${npr(total)} recorded`,
           });
           onClose();
-          navigate(`/customers/${values.customerId}`);
         },
         onError: (error) => {
           toast.error("Couldn't add udharo", { description: error.message });

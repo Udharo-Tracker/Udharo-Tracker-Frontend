@@ -1,7 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { App, Alert, Table, Dropdown, Input, Button } from "antd";
+import {
+  App,
+  Alert,
+  Checkbox,
+  DatePicker,
+  Table,
+  Dropdown,
+  Input,
+  Button,
+} from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
+import type { Dayjs } from "dayjs";
 import {
   Eye,
   MoreHorizontal,
@@ -13,10 +23,18 @@ import {
 import { usePayments, useDeletePayment } from "@/api/payments.api";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
+import { PAYMENT_MODE_LABELS } from "@/lib/payment";
 import { formatDate } from "@/utils/date";
 import { CustomerAvatar } from "@/components/shared/CustomerAvatar";
+import { FilterPopover } from "@/components/shared/FilterPopover";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Panel } from "@/components/shared/Panel";
+
+const { RangePicker } = DatePicker;
+type DateRange = [Dayjs | null, Dayjs | null] | null;
+const PAYMENT_MODE_OPTIONS = Object.entries(PAYMENT_MODE_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
 
 export function PaymentsList() {
   const navigate = useNavigate();
@@ -27,6 +45,10 @@ export function PaymentsList() {
   const [q, setQ] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchExpanded = searchFocused || q.length > 0;
+  const [modeFilter, setModeFilter] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange>(null);
+  const hasActiveFilters =
+    modeFilter.length > 0 || !!(dateRange && (dateRange[0] || dateRange[1]));
 
   const confirmDelete = (id: string) => {
     modal.confirm({
@@ -50,10 +72,24 @@ export function PaymentsList() {
   );
   const filtered = useMemo(
     () =>
-      sorted.filter((p) =>
-        p.customer.name.toLowerCase().includes(q.toLowerCase()),
-      ),
-    [sorted, q],
+      sorted.filter((p) => {
+        const query = q.toLowerCase();
+        const matchesQuery =
+          !query ||
+          p.customer.name.toLowerCase().includes(query) ||
+          (p.note ?? "").toLowerCase().includes(query) ||
+          (p.reference ?? "").toLowerCase().includes(query);
+        const matchesMode =
+          modeFilter.length === 0 ||
+          (p.payment_mode && modeFilter.includes(p.payment_mode));
+        const paymentDate = new Date(p.created_at);
+        const [from, to] = dateRange ?? [null, null];
+        const matchesDate =
+          (!from || paymentDate >= from.startOf("day").toDate()) &&
+          (!to || paymentDate <= to.endOf("day").toDate());
+        return matchesQuery && matchesMode && matchesDate;
+      }),
+    [sorted, q, modeFilter, dateRange],
   );
 
   const columns: TableColumnsType<Payment> = [
@@ -157,7 +193,7 @@ export function PaymentsList() {
               {searchExpanded ? (
                 <Input
                   autoFocus
-                  placeholder="Search by customer…"
+                  placeholder="Search by customer, note, or reference…"
                   value={q}
                   prefix={
                     <Search
@@ -176,6 +212,33 @@ export function PaymentsList() {
                 />
               )}
             </div>
+            <FilterPopover
+              active={hasActiveFilters}
+              onClear={() => {
+                setModeFilter([]);
+                setDateRange(null);
+              }}
+              title="Filter payments"
+            >
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Payment mode</p>
+                <Checkbox.Group
+                  className="flex flex-col gap-2"
+                  value={modeFilter}
+                  onChange={(values) => setModeFilter(values as string[])}
+                  options={PAYMENT_MODE_OPTIONS}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Payment date</p>
+                <RangePicker
+                  className="w-full"
+                  value={dateRange}
+                  onChange={(range) => setDateRange(range)}
+                  allowEmpty={[true, true]}
+                />
+              </div>
+            </FilterPopover>
             <Button
               type="primary"
               icon={<Wallet className="size-4" />}

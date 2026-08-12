@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { App, Alert, Table, Dropdown, Input, Button } from "antd";
+import { App, Alert, DatePicker, Table, Dropdown, Input, Button } from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
+import type { Dayjs } from "dayjs";
 import {
   Eye,
   MoreHorizontal,
@@ -15,9 +16,13 @@ import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 import { formatDate } from "@/utils/date";
 import { CustomerAvatar } from "@/components/shared/CustomerAvatar";
+import { FilterPopover } from "@/components/shared/FilterPopover";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Panel } from "@/components/shared/Panel";
 import { StatusTag } from "@/components/shared/StatusTag";
+
+const { RangePicker } = DatePicker;
+type DateRange = [Dayjs | null, Dayjs | null] | null;
 
 export function UdharoList() {
   const navigate = useNavigate();
@@ -28,6 +33,8 @@ export function UdharoList() {
   const [q, setQ] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchExpanded = searchFocused || q.length > 0;
+  const [dateRange, setDateRange] = useState<DateRange>(null);
+  const hasActiveFilters = !!(dateRange && (dateRange[0] || dateRange[1]));
 
   const confirmDelete = (id: string) => {
     modal.confirm({
@@ -50,10 +57,21 @@ export function UdharoList() {
   );
   const filtered = useMemo(
     () =>
-      sorted.filter((e) =>
-        e.customer.name.toLowerCase().includes(q.toLowerCase()),
-      ),
-    [sorted, q],
+      sorted.filter((e) => {
+        const query = q.toLowerCase();
+        const matchesQuery =
+          !query ||
+          e.customer.name.toLowerCase().includes(query) ||
+          e.items.some((i) => i.item_name.toLowerCase().includes(query)) ||
+          (e.note ?? "").toLowerCase().includes(query);
+        const entryDate = new Date(e.created_at);
+        const [from, to] = dateRange ?? [null, null];
+        const matchesDate =
+          (!from || entryDate >= from.startOf("day").toDate()) &&
+          (!to || entryDate <= to.endOf("day").toDate());
+        return matchesQuery && matchesDate;
+      }),
+    [sorted, q, dateRange],
   );
 
   const columns: TableColumnsType<UdharoEntry> = [
@@ -173,7 +191,7 @@ export function UdharoList() {
               {searchExpanded ? (
                 <Input
                   autoFocus
-                  placeholder="Search by customer…"
+                  placeholder="Search by customer, item, or note…"
                   value={q}
                   prefix={
                     <Search
@@ -192,6 +210,21 @@ export function UdharoList() {
                 />
               )}
             </div>
+            <FilterPopover
+              active={hasActiveFilters}
+              onClear={() => setDateRange(null)}
+              title="Filter udharo entries"
+            >
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Entry date</p>
+                <RangePicker
+                  className="w-full"
+                  value={dateRange}
+                  onChange={(range) => setDateRange(range)}
+                  allowEmpty={[true, true]}
+                />
+              </div>
+            </FilterPopover>
             <Button
               type="primary"
               icon={<PlusCircle className="size-4" />}

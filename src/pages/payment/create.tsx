@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { App, Modal, Button, Form } from "antd";
 import { CustomerCombobox } from "@/components/shared/CustomerCombobox";
@@ -46,7 +45,6 @@ function CreatePaymentForm({
   preset?: string;
   onClose: () => void;
 }) {
-  const navigate = useNavigate();
   const { message } = App.useApp();
   const createPayment = useCreatePayment();
   const ledgerSummary = useLedgerSummary();
@@ -77,7 +75,6 @@ function CreatePaymentForm({
             `${npr(value)} received${cust ? ` from ${cust.name}` : ""}`,
           );
           onClose();
-          navigate(`/customers/${values.customerId}`);
         },
         onError: (error) => message.error(error.message),
       },

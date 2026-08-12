@@ -76,10 +76,17 @@ interface RequestOptions {
   auth?: boolean;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}, isRetry = false): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  isRetry = false,
+): Promise<T> {
   const { method = "GET", body, auth = true } = options;
 
-  const headers = new Headers({ "Content-Type": "application/json" });
+  const isFormData = body instanceof FormData;
+
+  const headers = new Headers();
+  if (!isFormData) headers.set("Content-Type", "application/json");
   if (auth) {
     const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -88,7 +95,8 @@ async function request<T>(path: string, options: RequestOptions = {}, isRetry = 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body:
+      body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
   if (res.status === 401 && auth) {
@@ -117,12 +125,23 @@ async function request<T>(path: string, options: RequestOptions = {}, isRetry = 
 export const apiClient = {
   get: <T>(path: string, options?: Omit<RequestOptions, "method" | "body">) =>
     request<T>(path, { ...options, method: "GET" }),
-  post: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) =>
-    request<T>(path, { ...options, method: "POST", body }),
-  put: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) =>
-    request<T>(path, { ...options, method: "PUT", body }),
-  patch: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) =>
-    request<T>(path, { ...options, method: "PATCH", body }),
-  delete: <T>(path: string, options?: Omit<RequestOptions, "method" | "body">) =>
-    request<T>(path, { ...options, method: "DELETE" }),
+  post: <T>(
+    path: string,
+    body?: unknown,
+    options?: Omit<RequestOptions, "method" | "body">,
+  ) => request<T>(path, { ...options, method: "POST", body }),
+  put: <T>(
+    path: string,
+    body?: unknown,
+    options?: Omit<RequestOptions, "method" | "body">,
+  ) => request<T>(path, { ...options, method: "PUT", body }),
+  patch: <T>(
+    path: string,
+    body?: unknown,
+    options?: Omit<RequestOptions, "method" | "body">,
+  ) => request<T>(path, { ...options, method: "PATCH", body }),
+  delete: <T>(
+    path: string,
+    options?: Omit<RequestOptions, "method" | "body">,
+  ) => request<T>(path, { ...options, method: "DELETE" }),
 };
