@@ -11,6 +11,7 @@ import { UdharoDetail } from "./pages/udharo/info";
 import { PaymentsList } from "./pages/payment/list";
 import { PaymentDetail } from "./pages/payment/info";
 import { TransactionsList } from "./pages/transaction/list";
+import { NotificationsList } from "./pages/notification/list";
 import { Reports } from "./pages/report/index";
 import { Shops } from "./pages/shop/index";
 
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/payments" element={<PaymentsList />} />
             <Route path="/payments/:id" element={<PaymentDetail />} />
             <Route path="/transactions" element={<TransactionsList />} />
+            <Route path="/notifications" element={<NotificationsList />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/shop" element={<Shops />} />
           </Route>
