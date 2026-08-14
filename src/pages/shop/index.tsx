@@ -6,7 +6,7 @@ import { useShops, useCreateShop, useUpdateShop } from "@/api/shops.api";
 
 interface ShopFormValues {
   name: string;
-  legal_name?: string;
+  legal_name: string;
   tax_number?: string;
   phone: string;
   address: string;
@@ -78,7 +78,7 @@ function ShopForm({ existing }: { existing?: Shop }) {
   const submit = (values: ShopFormValues) => {
     const payload: ShopInput = {
       name: values.name.trim(),
-      legal_name: values.legal_name?.trim(),
+      legal_name: values.legal_name.trim(),
       tax_number: values.tax_number?.trim(),
       phone: values.phone.trim(),
       address: values.address.trim(),
@@ -154,17 +154,13 @@ function ShopForm({ existing }: { existing?: Shop }) {
             name="name"
             rules={[{ required: true, message: "Please enter shop name" }]}
           >
-            <Input
-              placeholder="e.g. Coder Cafe"
-              className="h-11 rounded-xl"
-              autoFocus
-            />
+            <Input placeholder="e.g. Coder Cafe" autoFocus />
           </Form.Item>
           <Form.Item label="Shop number" style={{ width: "100%" }}>
             <Space.Compact className="w-full">
-              <Button disabled className="rounded-l-md! h-11!">
+              {/* <Button className="rounded-l-md! h-11! bg-gray">
                 <span className="text-xl">🇳🇵</span>
-              </Button>
+              </Button> */}
               <Form.Item
                 name="phone"
                 noStyle
@@ -175,7 +171,7 @@ function ShopForm({ existing }: { existing?: Shop }) {
                 <Input
                   prefix=" +977"
                   placeholder="98xxxxxxxx"
-                  className="h-11 rounded-r-xl!"
+                  addonBefore="🇳🇵"
                 />
               </Form.Item>
             </Space.Compact>
@@ -184,11 +180,11 @@ function ShopForm({ existing }: { existing?: Shop }) {
             label="Legal name"
             name="legal_name"
             tooltip="Registered business name, if different from the shop name"
+            rules={[{ required: true, message: "Please enter legal name" }]}
           >
             <Input
               prefix={<FileText className="size-4 text-muted-foreground" />}
               placeholder="e.g. Coder Cafe Pvt. Ltd."
-              className="h-11 rounded-xl"
               maxLength={255}
             />
           </Form.Item>
@@ -196,7 +192,6 @@ function ShopForm({ existing }: { existing?: Shop }) {
             <Input
               prefix={<Hash className="size-4 text-muted-foreground" />}
               placeholder="e.g. 123456789"
-              className="h-11 rounded-xl"
               maxLength={20}
             />
           </Form.Item>
@@ -209,7 +204,6 @@ function ShopForm({ existing }: { existing?: Shop }) {
           <Input
             prefix={<MapPin className="size-4 text-muted-foreground" />}
             placeholder="Street, city"
-            className="h-11 rounded-xl"
           />
         </Form.Item>
 
