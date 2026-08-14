@@ -119,7 +119,11 @@ async function request<T>(
     return undefined as T;
   }
 
-  return (await res.json()) as T;
+  // A handful of endpoints (e.g. mark-all-read) reply 200 with an empty
+  // body instead of 204 — read as text first so those don't blow up on
+  // `res.json()`'s "Unexpected end of JSON input".
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export const apiClient = {
