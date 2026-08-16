@@ -168,10 +168,10 @@ export function PaymentDetail() {
           </Panel>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl bg-linear-to-br from-success to-success/80 text-success-foreground p-5">
+        <div className="space-y-3">
+          <div className="rounded-lg bg-linear-to-br from-success to-success/80 text-success-foreground p-5">
             <div className="flex items-center gap-3">
-              <div className="size-11 rounded-2xl bg-white/15 grid place-items-center">
+              <div className="size-11 rounded-lg bg-white/15 grid place-items-center">
                 <Wallet className="size-5" />
               </div>
               <div>
