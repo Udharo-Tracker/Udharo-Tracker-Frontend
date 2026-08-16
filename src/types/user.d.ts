@@ -14,8 +14,13 @@ interface UserProfile {
 }
 
 type UserProfileUpdateInput = Partial<
-  Omit<UserProfile, "id" | "email" | "created_at" | "updated_at">
->;
+  Omit<
+    UserProfile,
+    "id" | "email" | "created_at" | "updated_at" | "profile_picture"
+  >
+> & {
+  profile_picture?: File | string | null;
+};
 
 interface UserRegisterInput {
   email: string;
