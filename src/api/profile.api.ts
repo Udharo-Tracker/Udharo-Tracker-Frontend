@@ -5,16 +5,39 @@ export const profileQueryKeys = {
   detail: ["profile"] as const,
 };
 
+// Profile writes go through FormData whenever a new picture file is
+// attached, since the API expects multipart for file uploads; plain JSON
+// otherwise.
+function toProfilePayload(
+  input: UserProfileUpdateInput,
+): UserProfileUpdateInput | FormData {
+  if (!(input.profile_picture instanceof File)) return input;
+
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) continue;
+    if (key === "profile_picture") {
+      formData.append("profile_picture", value as File);
+    } else {
+      formData.append(key, String(value));
+    }
+  }
+  return formData;
+}
+
 export function getProfile() {
   return apiClient.get<UserProfile>("/user/profile/");
 }
 
 export function updateProfile(input: UserProfileUpdateInput) {
-  return apiClient.put<UserProfile>("/user/profile/", input);
+  return apiClient.put<UserProfile>("/user/profile/", toProfilePayload(input));
 }
 
 export function patchProfile(input: UserProfileUpdateInput) {
-  return apiClient.patch<UserProfile>("/user/profile/", input);
+  return apiClient.patch<UserProfile>(
+    "/user/profile/",
+    toProfilePayload(input),
+  );
 }
 
 export function useProfile() {

@@ -125,7 +125,7 @@ export function UdharoDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <Panel padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -159,10 +159,10 @@ export function UdharoDetail() {
           </Panel>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl bg-linear-to-br from-primary to-primary/80 text-primary-foreground p-5">
+        <div className="space-y-3">
+          <div className="rounded-lg bg-linear-to-br from-primary to-primary/80 text-primary-foreground p-5">
             <div className="flex items-center gap-3">
-              <div className="size-11 rounded-2xl bg-white/15 grid place-items-center">
+              <div className="size-11 rounded-lg bg-white/15 grid place-items-center">
                 <Receipt className="size-5" />
               </div>
               <div>

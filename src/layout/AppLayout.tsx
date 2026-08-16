@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Bell,
   Store,
+  Lock,
 } from "lucide-react";
 import { App, Avatar, Menu, Popover } from "antd";
 import type { MenuProps } from "antd";
@@ -19,11 +20,12 @@ import { FloatingActions } from "../components/shared/FloatingActions";
 import { BottomNav } from "../components/shared/BottomNav";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { EntityModalsProvider } from "@/context/EntityModalsProvider";
+import { ChangePasswordModal } from "@/pages/profile/change-password";
 import { useLogout } from "@/api/auth.api";
 import { useProfile } from "@/api/profile.api";
 import { useShops } from "@/api/shops.api";
 import { useUnreadNotifications } from "@/api/notifications.api";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 const menuNav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -37,12 +39,14 @@ const menuNav = [
 
 export default function AppLayout({ children }: { children?: ReactNode }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const logout = useLogout();
   const { data: profile } = useProfile();
   const { data: shops } = useShops();
   const shop = shops?.[0];
   const unread = useUnreadNotifications();
   const unreadCount = unread.data?.length ?? 0;
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   function isActive(to: string) {
     return to === "/" ? pathname === "/" : pathname.startsWith(to);
@@ -53,7 +57,13 @@ export default function AppLayout({ children }: { children?: ReactNode }) {
       key: "profile",
       label: "Profile settings",
       icon: <Settings className="size-4" />,
-      disabled: true,
+      onClick: () => navigate("/profile"),
+    },
+    {
+      key: "change-password",
+      label: "Change password",
+      icon: <Lock className="size-4" />,
+      onClick: () => setChangePasswordOpen(true),
     },
     { type: "divider" },
     {
@@ -235,6 +245,10 @@ export default function AppLayout({ children }: { children?: ReactNode }) {
         </div>
         <FloatingActions />
         <BottomNav />
+        <ChangePasswordModal
+          open={changePasswordOpen}
+          onClose={() => setChangePasswordOpen(false)}
+        />
       </EntityModalsProvider>
     </App>
   );
