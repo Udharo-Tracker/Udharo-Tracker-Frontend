@@ -14,6 +14,7 @@ export function getTransactions(params: TransactionListParams = {}) {
   const search = new URLSearchParams();
   if (params.customer_id) search.set("customer_id", params.customer_id);
   if (params.type) search.set("type", params.type);
+  if (params.ordering) search.set("ordering", params.ordering);
   const query = search.toString();
   return apiClient.get<TransactionListItem[]>(
     `/ledger/transactions/${query ? `?${query}` : ""}`,

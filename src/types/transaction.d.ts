@@ -87,4 +87,8 @@ interface Transaction {
 interface TransactionListParams {
   customer_id?: string;
   type?: TransactionType;
+  // Sortable fields: transaction_date, created_at, amount, txn_number.
+  // Prefix with "-" to descend; defaults to -transaction_date,-created_at
+  // server-side.
+  ordering?: string;
 }
