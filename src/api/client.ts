@@ -19,6 +19,35 @@ export class ApiError extends Error {
   }
 }
 
+// DRF error bodies vary by endpoint: {"non_field_errors": [...]}, a
+// field-specific {"password": [...]}, {"detail": "..."}, or the "always
+// 200" endpoints that don't error at all. Pulls out the first usable string
+// so forms can show the actual reason (e.g. the credit-limit message)
+// instead of a generic "Bad Request" from res.statusText.
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong",
+): string {
+  if (
+    error instanceof ApiError &&
+    error.data &&
+    typeof error.data === "object"
+  ) {
+    const data = error.data as Record<string, unknown>;
+    for (const key of ["detail", "message", "non_field_errors"]) {
+      const value = data[key];
+      if (typeof value === "string") return value;
+      if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+    }
+    for (const value of Object.values(data)) {
+      if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+      if (typeof value === "string") return value;
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -124,6 +153,78 @@ async function request<T>(
   // `res.json()`'s "Unexpected end of JSON input".
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+// PDF export endpoints reply with a raw binary rather than JSON, so they
+// can't go through `request()`'s res.json() handling. Mirrors request()'s
+// auth-header + refresh-on-401 behavior, but resolves to the blob plus the
+// filename the server suggested via Content-Disposition.
+export interface BlobResult {
+  blob: Blob;
+  filename: string;
+}
+
+function filenameFromContentDisposition(
+  header: string | null,
+  fallback: string,
+): string {
+  const match = header
+    ? /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header)
+    : null;
+  return match ? decodeURIComponent(match[1]) : fallback;
+}
+
+export async function requestBlob(
+  path: string,
+  fallbackFilename: string,
+  isRetry = false,
+): Promise<BlobResult> {
+  const headers = new Headers();
+  const token = getAccessToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
+
+  if (res.status === 401) {
+    if (!isRetry && getRefreshToken()) {
+      const newAccessToken = await refreshAccessToken();
+      if (newAccessToken) {
+        return requestBlob(path, fallbackFilename, true);
+      }
+    }
+    clearAuthTokens();
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  }
+
+  const contentType = res.headers.get("Content-Type") ?? "";
+  // A validation failure (missing year, bad month) comes back as a normal
+  // JSON 400, not a PDF — check Content-Type rather than assuming a binary
+  // body just because the status is 200.
+  if (!res.ok || !contentType.includes("application/pdf")) {
+    const data = await res.json().catch(() => undefined);
+    throw new ApiError(res.statusText || "Request failed", res.status, data);
+  }
+
+  const blob = await res.blob();
+  const filename = filenameFromContentDisposition(
+    res.headers.get("Content-Disposition"),
+    fallbackFilename,
+  );
+  return { blob, filename };
+}
+
+// Triggers a browser "Save As" for an in-memory blob — used for the PDF
+// export endpoints, which the app fetches with the auth header attached
+// rather than linking straight at the URL.
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 export const apiClient = {
