@@ -7,12 +7,19 @@ import { ledgerQueryKeys } from "./ledger.api";
 export const paymentsQueryKeys = {
   all: ["payments"] as const,
   lists: () => [...paymentsQueryKeys.all, "list"] as const,
+  list: (params: PaymentListParams) =>
+    [...paymentsQueryKeys.lists(), params] as const,
   details: () => [...paymentsQueryKeys.all, "detail"] as const,
   detail: (id: string) => [...paymentsQueryKeys.details(), id] as const,
 };
 
-export function getPayments() {
-  return apiClient.get<Payment[]>("/payments/");
+// Sortable via `ordering`: amount_paid, transaction_date, created_at.
+// Prefix with "-" to descend; defaults to -created_at server-side.
+export function getPayments(params: PaymentListParams = {}) {
+  const search = new URLSearchParams();
+  if (params.ordering) search.set("ordering", params.ordering);
+  const query = search.toString();
+  return apiClient.get<Payment[]>(`/payments/${query ? `?${query}` : ""}`);
 }
 
 export function getPayment(id: string) {
@@ -35,10 +42,10 @@ export function deletePayment(id: string) {
   return apiClient.delete<void>(`/payments/${id}/`);
 }
 
-export function usePayments() {
+export function usePayments(params: PaymentListParams = {}) {
   return useQuery({
-    queryKey: paymentsQueryKeys.lists(),
-    queryFn: getPayments,
+    queryKey: paymentsQueryKeys.list(params),
+    queryFn: () => getPayments(params),
   });
 }
 
