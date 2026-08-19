@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import { CustomerCombobox } from "@/components/shared/CustomerCombobox";
-import { Plus, X, Check } from "lucide-react";
+import { Plus, X, Check, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { App, Button, Modal, Form } from "antd";
 import { Textarea } from "@/components/shared/Textarea";
 import { Label } from "@/components/shared/Label";
 import { useCreateUdharoEntry } from "@/api/udharo.api";
+import { useCustomer } from "@/api/customers.api";
+import { getApiErrorMessage } from "@/api/client";
 import { npr } from "@/lib/currency";
 
 interface Props {
@@ -58,6 +60,7 @@ function CreateUdharoForm({
 
   const customerId = Form.useWatch("customerId", form);
   const items = Form.useWatch("items", form) ?? [];
+  const customer = useCustomer(customerId);
 
   // When the first item row appears (e.g. customer just selected), focus its amount field
   useEffect(() => {
@@ -68,6 +71,18 @@ function CreateUdharoForm({
   }, [customerId]);
 
   const total = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+
+  // Mirrors the server's own check (outstanding balance after this entry vs
+  // credit_limit) so the button can be disabled up front instead of always
+  // round-tripping to find out — only blocks when both block_over_credit_limit
+  // is on and credit_limit is actually set, same as the backend.
+  const creditLimit = Number(customer.data?.credit_limit) || 0;
+  const outstanding =
+    Number(customer.data?.ledger_summary.outstanding_balance) || 0;
+  const overCreditLimit =
+    !!customer.data?.block_over_credit_limit &&
+    creditLimit > 0 &&
+    outstanding + total > creditLimit;
 
   const submit = (values: UdharoFormValues) => {
     if (total <= 0) {
@@ -90,7 +105,9 @@ function CreateUdharoForm({
           onClose();
         },
         onError: (error) => {
-          toast.error("Couldn't add udharo", { description: error.message });
+          toast.error("Couldn't add udharo", {
+            description: getApiErrorMessage(error),
+          });
         },
       },
     );
@@ -181,6 +198,17 @@ function CreateUdharoForm({
         />
       </Form.Item>
 
+      {overCreditLimit && (
+        <div className="mb-4 flex items-start gap-2 rounded-2xl bg-danger-soft text-danger px-4 py-3 text-sm">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <span>
+            This would put {customer.data?.name}'s outstanding balance at{" "}
+            {npr(outstanding + total)}, over their {npr(creditLimit)} credit
+            limit. New udharo entries are blocked for this customer.
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between bg-primary text-primary-foreground rounded-2xl px-5 py-3.5">
         <div>
           <div className="text-xs uppercase tracking-wider opacity-80">
@@ -191,6 +219,7 @@ function CreateUdharoForm({
         <Button
           htmlType="submit"
           loading={createUdharoEntry.isPending}
+          disabled={overCreditLimit}
           size="large"
           className="rounded-2xl bg-primary-foreground text-primary hover:bg-primary-foreground/90 h-11 px-6"
         >
