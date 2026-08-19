@@ -7,12 +7,19 @@ import { ledgerQueryKeys } from "./ledger.api";
 export const udharoQueryKeys = {
   all: ["udharo"] as const,
   lists: () => [...udharoQueryKeys.all, "list"] as const,
+  list: (params: UdharoEntryListParams) =>
+    [...udharoQueryKeys.lists(), params] as const,
   details: () => [...udharoQueryKeys.all, "detail"] as const,
   detail: (id: string) => [...udharoQueryKeys.details(), id] as const,
 };
 
-export function getUdharoEntries() {
-  return apiClient.get<UdharoEntry[]>("/udharo/");
+// Sortable via `ordering`: created_at, settled_at. Prefix with "-" to
+// descend; defaults to -created_at server-side.
+export function getUdharoEntries(params: UdharoEntryListParams = {}) {
+  const search = new URLSearchParams();
+  if (params.ordering) search.set("ordering", params.ordering);
+  const query = search.toString();
+  return apiClient.get<UdharoEntry[]>(`/udharo/${query ? `?${query}` : ""}`);
 }
 
 export function getUdharoEntry(id: string) {
@@ -35,10 +42,10 @@ export function deleteUdharoEntry(id: string) {
   return apiClient.delete<void>(`/udharo/${id}/`);
 }
 
-export function useUdharoEntries() {
+export function useUdharoEntries(params: UdharoEntryListParams = {}) {
   return useQuery({
-    queryKey: udharoQueryKeys.lists(),
-    queryFn: getUdharoEntries,
+    queryKey: udharoQueryKeys.list(params),
+    queryFn: () => getUdharoEntries(params),
   });
 }
 
