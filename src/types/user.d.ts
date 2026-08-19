@@ -55,3 +55,20 @@ interface UserChangePasswordInput {
 }
 
 type UserChangePasswordPartialInput = Partial<UserChangePasswordInput>;
+
+// `uid`/`token` come off the query string of the link mailed to the user —
+// read them from the landing page URL, don't construct them.
+interface EmailVerifyConfirmInput {
+  uid: string;
+  token: string;
+}
+
+interface ResendVerificationEmailInput {
+  email: string;
+}
+
+// A handful of auth endpoints (email verify/resend, forgot-password) just
+// reply with a static status message rather than a resource.
+interface MessageResponse {
+  message: string;
+}

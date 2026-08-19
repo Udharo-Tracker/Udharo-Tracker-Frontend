@@ -24,4 +24,7 @@ interface NotificationListParams {
   notif_type?: NotifType;
   created_after?: string;
   created_before?: string;
+  // Sortable fields: created_at, is_read. Prefix with "-" to descend;
+  // defaults to -created_at server-side.
+  ordering?: string;
 }

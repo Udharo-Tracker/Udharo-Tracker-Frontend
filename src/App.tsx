@@ -3,6 +3,9 @@ import AppLayout from "./layout/AppLayout";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 import { Login } from "./pages/auth/Login";
 import { Signup } from "./pages/auth/Signup";
+import { ForgotPassword } from "./pages/auth/ForgotPassword";
+import { ResetPassword } from "./pages/auth/ResetPassword";
+import { VerifyEmail } from "./pages/auth/VerifyEmail";
 import { Dashboard } from "./pages/Dashboard/index";
 import { CustomersList } from "./pages/customer/list";
 import { CustomerDetail } from "./pages/customer/info";
@@ -22,6 +25,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />

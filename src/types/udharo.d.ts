@@ -24,3 +24,7 @@ interface UdharoEntryInput {
 }
 
 type UdharoEntryUpdateInput = Partial<UdharoEntryInput>;
+
+interface UdharoEntryListParams {
+  ordering?: string;
+}

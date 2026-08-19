@@ -8,10 +8,12 @@ import {
   Divider,
   Form,
   Space,
+  Switch,
 } from "antd";
 import { UserPlus } from "lucide-react";
 import { Textarea } from "@/components/shared/Textarea";
 import { useCreateCustomer } from "@/api/customers.api";
+import { getApiErrorMessage } from "@/api/client";
 
 interface Props {
   open: boolean;
@@ -39,6 +41,7 @@ interface CreateCustomerFormValues {
   email?: string;
   address?: string;
   creditLimit: number;
+  blockOverCreditLimit: boolean;
   creditTermDays: number;
   loyaltyDiscount: number;
   openingBalance: number;
@@ -58,6 +61,7 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
         email: values.email?.trim() ?? "",
         address: values.address?.trim() ?? "",
         credit_limit: String(values.creditLimit ?? 0),
+        block_over_credit_limit: values.blockOverCreditLimit ?? false,
         credit_term_days: values.creditTermDays ?? 0,
         loyalty_discount: String(values.loyaltyDiscount ?? 0),
         opening_balance: String(values.openingBalance ?? 0),
@@ -68,7 +72,7 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
           onClose();
           navigate("/customers");
         },
-        onError: (error) => message.error(error.message),
+        onError: (error) => message.error(getApiErrorMessage(error)),
       },
     );
   };
@@ -81,6 +85,7 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
       className="pt-2"
       initialValues={{
         creditLimit: 0,
+        blockOverCreditLimit: false,
         creditTermDays: 0,
         loyaltyDiscount: 0,
         openingBalance: 0,
@@ -132,6 +137,19 @@ function CreateCustomerForm({ onClose }: { onClose: () => void }) {
             </Form.Item>
             <Button disabled>Rs</Button>
           </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Block over-limit udharo"
+          tooltip="When on, new udharo entries that would push this customer's outstanding balance over their credit limit are rejected instead of just flagged."
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Form.Item
+            name="blockOverCreditLimit"
+            valuePropName="checked"
+            noStyle
+          >
+            <Switch />
+          </Form.Item>
         </Form.Item>
         <Form.Item
           label="Credit term"

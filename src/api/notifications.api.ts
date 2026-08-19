@@ -16,6 +16,7 @@ function buildNotificationsQuery(params: NotificationListParams) {
   if (params.created_after) search.set("created_after", params.created_after);
   if (params.created_before)
     search.set("created_before", params.created_before);
+  if (params.ordering) search.set("ordering", params.ordering);
   return search.toString();
 }
 

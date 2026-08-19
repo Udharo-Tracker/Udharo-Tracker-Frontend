@@ -24,3 +24,7 @@ interface PaymentInput {
 }
 
 type PaymentUpdateInput = Partial<PaymentInput>;
+
+interface PaymentListParams {
+  ordering?: string;
+}

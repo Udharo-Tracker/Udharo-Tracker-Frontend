@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Button, Card, Input } from "antd";
+import { Button, Card, Input, Modal } from "antd";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/shared/Label";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogin } from "@/api/auth.api";
+import { useLogin, useResendVerificationEmail } from "@/api/auth.api";
 
 type LocationState = { from?: { pathname: string } };
 
@@ -14,12 +14,16 @@ export function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const login = useLogin();
+  const resendVerification = useResendVerificationEmail();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resendOpen, setResendOpen] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
 
   if (isAuthenticated) {
-    const redirectTo = (location.state as LocationState | null)?.from?.pathname ?? "/";
+    const redirectTo =
+      (location.state as LocationState | null)?.from?.pathname ?? "/";
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -29,13 +33,16 @@ export function Login() {
       { email, password },
       {
         onSuccess: () => {
-          const redirectTo = (location.state as LocationState | null)?.from?.pathname ?? "/";
+          const redirectTo =
+            (location.state as LocationState | null)?.from?.pathname ?? "/";
           navigate(redirectTo, { replace: true });
         },
         onError: () => {
-          toast.error("Login failed", { description: "Check your email and password and try again." });
+          toast.error("Login failed", {
+            description: "Check your email and password and try again.",
+          });
         },
-      }
+      },
     );
   };
 
@@ -48,7 +55,9 @@ export function Login() {
           </div>
           <div>
             <div className="font-semibold text-lg">UdharoTrack</div>
-            <div className="text-sm text-muted-foreground">Sign in to manage your shop credit</div>
+            <div className="text-sm text-muted-foreground">
+              Sign in to manage your shop credit
+            </div>
           </div>
         </div>
 
@@ -67,7 +76,15 @@ export function Login() {
               />
             </div>
             <div>
-              <Label className="mb-2 block">Password</Label>
+              <div className="mb-2 flex items-center justify-between">
+                <Label>Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input.Password
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -91,11 +108,73 @@ export function Login() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/signup" className="text-primary font-medium hover:underline">
+          <Link
+            to="/signup"
+            className="text-primary font-medium hover:underline"
+          >
             Sign up
           </Link>
         </p>
+        <p className="text-center text-sm text-muted-foreground">
+          Account not verified yet?{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setResendEmail(email);
+              setResendOpen(true);
+            }}
+            className="text-primary font-medium hover:underline"
+          >
+            Resend verification email
+          </button>
+        </p>
       </div>
+
+      <Modal
+        title="Resend verification email"
+        open={resendOpen}
+        onCancel={() => setResendOpen(false)}
+        footer={null}
+        destroyOnHidden
+      >
+        {resendVerification.isSuccess ? (
+          <p className="text-sm text-muted-foreground pt-2">
+            If that email is registered and unverified, a link has been sent.
+            Check your inbox.
+          </p>
+        ) : (
+          <form
+            className="space-y-4 pt-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              resendVerification.mutate({ email: resendEmail });
+            }}
+          >
+            <div>
+              <Label className="mb-2 block">Email</Label>
+              <Input
+                type="email"
+                value={resendEmail}
+                onChange={(e) => setResendEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoFocus
+                required
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              size="large"
+              loading={resendVerification.isPending}
+              className="rounded-xl"
+            >
+              Send link
+            </Button>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { ledgerQueryKeys } from "./ledger.api";
 export const customersQueryKeys = {
   all: ["customers"] as const,
   lists: () => [...customersQueryKeys.all, "list"] as const,
+  list: (params: CustomerListParams) =>
+    [...customersQueryKeys.lists(), params] as const,
   details: () => [...customersQueryKeys.all, "detail"] as const,
   detail: (id: string) => [...customersQueryKeys.details(), id] as const,
   creditScore: (id: string) =>
@@ -14,8 +16,14 @@ export const customersQueryKeys = {
     [...customersQueryKeys.detail(id), "credit-score", "history"] as const,
 };
 
-export function getCustomers() {
-  return apiClient.get<Customer[]>("/customers/");
+// Sortable via `ordering`: name, credit_limit, opening_balance, created_at.
+// Prefix with "-" to descend; comma-separate for a tiebreaker, e.g.
+// "-amount,created_at". Defaults to -created_at server-side.
+export function getCustomers(params: CustomerListParams = {}) {
+  const search = new URLSearchParams();
+  if (params.ordering) search.set("ordering", params.ordering);
+  const query = search.toString();
+  return apiClient.get<Customer[]>(`/customers/${query ? `?${query}` : ""}`);
 }
 
 export function getCustomer(id: string) {
@@ -48,10 +56,10 @@ export function getCustomerCreditScoreHistory(customerId: string) {
   );
 }
 
-export function useCustomers() {
+export function useCustomers(params: CustomerListParams = {}) {
   return useQuery({
-    queryKey: customersQueryKeys.lists(),
-    queryFn: getCustomers,
+    queryKey: customersQueryKeys.list(params),
+    queryFn: () => getCustomers(params),
   });
 }
 

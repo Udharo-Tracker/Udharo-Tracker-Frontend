@@ -10,6 +10,10 @@ interface Customer {
   email: string;
   address: string;
   credit_limit: string;
+  // Turns credit_limit from advisory into enforced — new udharo entries that
+  // would push outstanding balance over the limit get rejected. Only takes
+  // effect when credit_limit is also > 0.
+  block_over_credit_limit: boolean;
   credit_term_days: number;
   loyalty_discount: string;
   opening_balance: string;
@@ -32,6 +36,7 @@ interface CustomerDetail {
   email: string;
   address: string;
   credit_limit: string;
+  block_over_credit_limit: boolean;
   credit_term_days: number;
   loyalty_discount: string;
   created_at: string;
@@ -44,9 +49,14 @@ interface CustomerInput {
   email: string;
   address: string;
   credit_limit: string;
+  block_over_credit_limit?: boolean;
   credit_term_days: number;
   loyalty_discount: string;
   opening_balance: string;
 }
 
 type CustomerUpdateInput = Partial<CustomerInput>;
+
+interface CustomerListParams {
+  ordering?: string;
+}

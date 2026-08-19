@@ -8,10 +8,12 @@ import {
   Divider,
   Form,
   Space,
+  Switch,
 } from "antd";
 import { Check } from "lucide-react";
 import { Textarea } from "@/components/shared/Textarea";
 import { useCustomer, useUpdateCustomer } from "@/api/customers.api";
+import { getApiErrorMessage } from "@/api/client";
 
 interface Props {
   open: boolean;
@@ -52,6 +54,7 @@ interface EditCustomerFormValues {
   email?: string;
   address?: string;
   creditLimit: number;
+  blockOverCreditLimit: boolean;
   creditTermDays: number;
   loyaltyDiscount: number;
   openingBalance: number;
@@ -78,6 +81,7 @@ function EditCustomerForm({
         email: values.email?.trim() ?? "",
         address: values.address?.trim() ?? "",
         credit_limit: String(values.creditLimit ?? 0),
+        block_over_credit_limit: values.blockOverCreditLimit ?? false,
         credit_term_days: values.creditTermDays ?? 0,
         loyalty_discount: String(values.loyaltyDiscount ?? 0),
         opening_balance: String(values.openingBalance ?? 0),
@@ -87,7 +91,7 @@ function EditCustomerForm({
           message.success("Customer updated");
           onClose();
         },
-        onError: (error) => message.error(error.message),
+        onError: (error) => message.error(getApiErrorMessage(error)),
       },
     );
   };
@@ -104,6 +108,7 @@ function EditCustomerForm({
         email: initial.email,
         address: initial.address,
         creditLimit: Number(initial.credit_limit) || 0,
+        blockOverCreditLimit: initial.block_over_credit_limit ?? false,
         creditTermDays: initial.credit_term_days,
         loyaltyDiscount: Number(initial.loyalty_discount) || 0,
         openingBalance: Number(initial.ledger_summary.opening_balance) || 0,
@@ -155,6 +160,19 @@ function EditCustomerForm({
             </Form.Item>
             <Button disabled>Rs</Button>
           </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          label="Block over-limit udharo"
+          tooltip="When on, new udharo entries that would push this customer's outstanding balance over their credit limit are rejected instead of just flagged."
+          style={{ width: "100%", margin: 0, padding: 0 }}
+        >
+          <Form.Item
+            name="blockOverCreditLimit"
+            valuePropName="checked"
+            noStyle
+          >
+            <Switch />
+          </Form.Item>
         </Form.Item>
         <Form.Item
           label="Credit term"

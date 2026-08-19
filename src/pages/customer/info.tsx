@@ -12,10 +12,14 @@ import {
   Wallet,
   ChevronLeft,
   Send,
+  MessageSquareText,
+  MessageCircle,
+  RefreshCw,
   CalendarDays,
   Scale,
   Copy,
   PlusCircle,
+  FileDown,
 } from "lucide-react";
 import {
   CartesianGrid,
@@ -36,8 +40,11 @@ import {
 import {
   useCustomerReminders,
   useCreateCustomerReminder,
+  useSendCustomerReminderSms,
+  useSendCustomerReminderWhatsapp,
 } from "@/api/reminders.api";
-import { ApiError } from "@/api/client";
+import { useDownloadCustomerStatementPdf } from "@/api/statement.api";
+import { ApiError, getApiErrorMessage } from "@/api/client";
 import { Panel } from "@/components/shared/Panel";
 import { RiskBadge } from "@/components/shared/RiskBadge";
 import { StatCard, StatCardSkeleton } from "@/components/shared/StatCard";
@@ -46,6 +53,16 @@ import { Label } from "@/components/shared/Label";
 import { useEntityModals } from "@/context/entity-modals-context";
 import { npr } from "@/lib/currency";
 import { formatDate, formatDateOnly } from "@/utils/date";
+
+const REMINDER_CHANNEL_META: Record<
+  ReminderChannel,
+  { label: string; icon: typeof Send }
+> = {
+  note: { label: "Note", icon: Send },
+  sms: { label: "SMS", icon: MessageSquareText },
+  whatsapp: { label: "WhatsApp", icon: MessageCircle },
+  auto: { label: "Automatic", icon: RefreshCw },
+};
 
 export function CustomerDetail() {
   const { id = "" } = useParams<{ id: string }>();
@@ -65,8 +82,31 @@ export function CustomerDetail() {
   const deleteCustomer = useDeleteCustomer();
   const reminders = useCustomerReminders(id);
   const createReminder = useCreateCustomerReminder(id);
+  const sendSmsReminder = useSendCustomerReminderSms(id);
+  const sendWhatsappReminder = useSendCustomerReminderWhatsapp(id);
+  const downloadStatementPdf = useDownloadCustomerStatementPdf();
   const [reminderNote, setReminderNote] = useState("");
   const [reminderModalOpen, setReminderModalOpen] = useState(false);
+
+  const sendQuickReminder = (
+    channel: "sms" | "whatsapp",
+    mutation: typeof sendSmsReminder,
+  ) => {
+    mutation.mutate(undefined, {
+      onSuccess: (log) => {
+        if (log.delivery_status === "failed") {
+          message.warning(
+            `${channel === "sms" ? "SMS" : "WhatsApp"} reminder logged, but the provider failed to deliver it.`,
+          );
+        } else {
+          message.success(
+            `${channel === "sms" ? "SMS" : "WhatsApp"} reminder sent`,
+          );
+        }
+      },
+      onError: (error) => message.error(getApiErrorMessage(error)),
+    });
+  };
 
   const confirmDelete = () => {
     modal.confirm({
@@ -225,6 +265,25 @@ export function CustomerDetail() {
       render: (sentAt: string) => (
         <span className="text-muted-foreground">{formatDate(sentAt)}</span>
       ),
+    },
+    {
+      title: "Channel",
+      dataIndex: "channel",
+      key: "channel",
+      render: (channel: ReminderChannel, record) => {
+        const meta =
+          REMINDER_CHANNEL_META[channel] ?? REMINDER_CHANNEL_META.note;
+        const Icon = meta.icon;
+        return (
+          <span className="inline-flex items-center gap-1.5 text-sm">
+            <Icon className="size-3.5 text-muted-foreground" />
+            {meta.label}
+            {record.delivery_status === "failed" && (
+              <span className="text-xs text-danger">· Failed</span>
+            )}
+          </span>
+        );
+      },
     },
     {
       title: "Note",
@@ -544,7 +603,24 @@ export function CustomerDetail() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-base">Credit statement</h2>
-        <span className="text-xs text-muted-foreground">Running balance</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">Running balance</span>
+          <Button
+            size="small"
+            icon={<FileDown className="size-3.5" />}
+            loading={downloadStatementPdf.isPending}
+            onClick={() =>
+              downloadStatementPdf.mutate(
+                { customerId: id, customerName: customerData.name },
+                {
+                  onError: (error) => message.error(getApiErrorMessage(error)),
+                },
+              )
+            }
+          >
+            Download PDF
+          </Button>
+        </div>
       </div>
       {customerTransactions.isError && (
         <Alert
@@ -596,15 +672,33 @@ export function CustomerDetail() {
   const remindersTab = (
     <div className="space-y-5">
       <div className="space-y-4">
-        <div className=" flex items-center justify-between">
+        <div className=" flex items-center justify-between flex-wrap gap-2">
           <h2 className="font-semibold text-base">Reminder history</h2>
-          <Button
-            type="primary"
-            icon={<Send className="size-3.5" />}
-            onClick={() => setReminderModalOpen(true)}
-          >
-            Log reminder
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              icon={<MessageSquareText className="size-3.5" />}
+              loading={sendSmsReminder.isPending}
+              onClick={() => sendQuickReminder("sms", sendSmsReminder)}
+            >
+              Send SMS
+            </Button>
+            <Button
+              icon={<MessageCircle className="size-3.5" />}
+              loading={sendWhatsappReminder.isPending}
+              onClick={() =>
+                sendQuickReminder("whatsapp", sendWhatsappReminder)
+              }
+            >
+              Send WhatsApp
+            </Button>
+            <Button
+              type="primary"
+              icon={<Send className="size-3.5" />}
+              onClick={() => setReminderModalOpen(true)}
+            >
+              Log reminder
+            </Button>
+          </div>
         </div>
         {reminders.isLoading && (
           <div className="p-6">
