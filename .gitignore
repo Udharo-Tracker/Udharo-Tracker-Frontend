@@ -29,3 +29,9 @@ dist-ssr
 
 # API schema (generated/local, not tracked)
 schema/Udharo Tracker API.yaml
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
